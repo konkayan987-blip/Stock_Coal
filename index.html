@@ -251,6 +251,11 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
   .upload-status{ font-family: var(--font-mono); font-size:12px; color:var(--text-dim); margin-top:10px; text-align:center; min-height:16px; }
   .upload-status.error{ color: var(--out-color); }
   .upload-status.ok{ color: var(--in-color); }
+  .save-info{
+    margin-top:12px; padding:10px 12px; border:1px solid var(--line-soft);
+    border-radius:8px; background:var(--bg-panel-2); color:var(--text-faint);
+    font-family:var(--font-mono); font-size:11px; text-align:center;
+  }
 
   footer.foot{
     margin-top: 46px; padding-top:18px; border-top:1px solid var(--line);
@@ -414,12 +419,14 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
       <div class="dropzone" id="dropzone">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
         <div class="dz-title">ลากไฟล์ .xlsx มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</div>
-        <div class="dz-sub">ระบบจะแทนที่ข้อมูลในแดชบอร์ดทั้งหมดด้วยไฟล์ที่คุณเลือก</div>
+        <div class="dz-sub">ระบบจะแทนที่ข้อมูลในแดชบอร์ดด้วยไฟล์ที่คุณเลือก และบันทึกข้อมูลล่าสุดไว้ใน Browser อัตโนมัติ เพื่อให้เปิดใหม่หรือ Refresh แล้วยังเห็นข้อมูลเดิม</div>
         <input type="file" id="fileInput" accept=".xlsx,.xls">
       </div>
       <div class="upload-status" id="uploadStatus"></div>
-      <div style="text-align:center; margin-top:10px;">
+      <div class="save-info" id="saveInfo">กำลังตรวจสอบข้อมูลที่บันทึกไว้...</div>
+      <div style="text-align:center; margin-top:10px; display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
         <button class="btn" id="resetSample">↺ กลับไปใช้ข้อมูลตัวอย่างเดิม</button>
+        <button class="btn" id="clearSavedData">🗑 ลบข้อมูลที่บันทึกถาวร</button>
       </div>
     </div>
   </div>
@@ -441,6 +448,73 @@ const STATE = {
   selectedMonthIdx: null, // 1-12
   charts: {}
 };
+
+/* ===================== Persistent Data Storage =====================
+   ข้อมูลล่าสุดที่อัปโหลดจะถูกเก็บไว้ใน browser (localStorage)
+   จึงยังอยู่หลังปิด/เปิดหน้า Dashboard หรือกด Refresh
+   การอัปโหลด Excel ใหม่จะเขียนทับข้อมูลล่าสุดโดยอัตโนมัติ
+===================================================================== */
+const STORAGE_KEY = 'coal_stock_dashboard_data_v1';
+const STORAGE_META_KEY = 'coal_stock_dashboard_meta_v1';
+
+function savePersistentData(data, fileName='') {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    localStorage.setItem(STORAGE_META_KEY, JSON.stringify({
+      fileName,
+      savedAt: new Date().toISOString()
+    }));
+    updateSaveInfo();
+    return true;
+  } catch (err) {
+    console.error('ไม่สามารถบันทึกข้อมูลใน browser ได้:', err);
+    const status = document.getElementById('uploadStatus');
+    if (status) {
+      status.className = 'upload-status error';
+      status.textContent = 'อ่านไฟล์ได้ แต่บันทึกถาวรใน Browser ไม่สำเร็จ';
+    }
+    return false;
+  }
+}
+
+function loadPersistentData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (err) {
+    console.error('ข้อมูลที่บันทึกไว้เสียหาย:', err);
+    return null;
+  }
+}
+
+function loadPersistentMeta() {
+  try {
+    const raw = localStorage.getItem(STORAGE_META_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function clearPersistentData() {
+  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(STORAGE_META_KEY);
+  updateSaveInfo();
+}
+
+function updateSaveInfo() {
+  const el = document.getElementById('saveInfo');
+  if (!el) return;
+  const meta = loadPersistentMeta();
+  if (!meta) {
+    el.textContent = 'ยังไม่มีข้อมูลที่บันทึกถาวร — ใช้ข้อมูลตัวอย่างจากหน้าเว็บ';
+    return;
+  }
+  const dt = new Date(meta.savedAt);
+  const when = isNaN(dt.getTime()) ? '-' : dt.toLocaleString('th-TH');
+  el.textContent = `✓ ข้อมูลล่าสุดถูกบันทึกในเครื่องนี้: ${meta.fileName || 'ข้อมูล Dashboard'} · ${when}`;
+}
 
 /* ---------- helpers ---------- */
 function fmt(num, opts={}) {
@@ -989,6 +1063,7 @@ function handleFile(file) {
       const parsed = parseWorkbookToData(wb);
       STATE.data = parsed;
       STATE.selectedMonthIdx = null;
+      savePersistentData(parsed, file.name);
       const badge = document.getElementById('sourceBadge');
       badge.classList.add('uploaded');
       document.getElementById('sourceLabel').textContent = `ข้อมูลจากไฟล์ที่อัปโหลด: ${file.name}`;
@@ -1010,20 +1085,46 @@ function handleFile(file) {
 }
 
 document.getElementById('resetSample').addEventListener('click', () => {
+  clearPersistentData();
   STATE.data = JSON.parse(document.getElementById('embedded-data').textContent);
   STATE.selectedMonthIdx = null;
   const badge = document.getElementById('sourceBadge');
   badge.classList.remove('uploaded');
   document.getElementById('sourceLabel').textContent = 'ข้อมูลตัวอย่างจากไฟล์ Stock_Coal.xlsx';
   uploadStatus.className = 'upload-status';
-  uploadStatus.textContent = '';
+  uploadStatus.textContent = 'กลับมาใช้ข้อมูลตัวอย่างแล้ว';
+  fileInput.value = '';
+  renderAll();
+});
+
+document.getElementById('clearSavedData').addEventListener('click', () => {
+  if (!confirm('ต้องการลบข้อมูล Excel ล่าสุดที่บันทึกไว้ใน Browser นี้หรือไม่?')) return;
+  clearPersistentData();
+  STATE.data = JSON.parse(document.getElementById('embedded-data').textContent);
+  STATE.selectedMonthIdx = null;
+  const badge = document.getElementById('sourceBadge');
+  badge.classList.remove('uploaded');
+  document.getElementById('sourceLabel').textContent = 'ข้อมูลตัวอย่างจากไฟล์ Stock_Coal.xlsx';
+  uploadStatus.className = 'upload-status';
+  uploadStatus.textContent = 'ลบข้อมูลที่บันทึกไว้แล้ว และกลับมาใช้ข้อมูลตัวอย่าง';
   fileInput.value = '';
   renderAll();
 });
 
 /* ===================== Init ===================== */
 (function init() {
-  STATE.data = JSON.parse(document.getElementById('embedded-data').textContent);
+  const saved = loadPersistentData();
+  if (saved && saved.months) {
+    STATE.data = saved;
+    const meta = loadPersistentMeta();
+    const badge = document.getElementById('sourceBadge');
+    badge.classList.add('uploaded');
+    document.getElementById('sourceLabel').textContent =
+      `ข้อมูลที่บันทึกล่าสุด${meta && meta.fileName ? ': ' + meta.fileName : ''}`;
+  } else {
+    STATE.data = JSON.parse(document.getElementById('embedded-data').textContent);
+  }
+  updateSaveInfo();
   renderAll();
 })();
 
