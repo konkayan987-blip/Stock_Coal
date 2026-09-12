@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
 /*!
  * Chart.js v4.5.1
@@ -251,11 +252,12 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
   .upload-status{ font-family: var(--font-mono); font-size:12px; color:var(--text-dim); margin-top:10px; text-align:center; min-height:16px; }
   .upload-status.error{ color: var(--out-color); }
   .upload-status.ok{ color: var(--in-color); }
-  .save-info{
-    margin-top:12px; padding:10px 12px; border:1px solid var(--line-soft);
-    border-radius:8px; background:var(--bg-panel-2); color:var(--text-faint);
-    font-family:var(--font-mono); font-size:11px; text-align:center;
-  }
+  .recent-upload-box{ margin-top:12px; padding:12px 14px; border-radius: var(--radius); border:1px solid var(--line-soft); background: var(--bg-panel-2); text-align:left; }
+  .recent-upload-title{ font-weight:700; color: var(--text); font-size:12px; margin-bottom:8px; }
+  .recent-upload-list{ list-style:none; padding:0; margin:0; font-family: var(--font-mono); color: var(--text-dim); font-size:11.5px; }
+  .recent-upload-list li{ padding:4px 0; border-top:1px solid var(--line-soft); }
+  .recent-upload-list li:first-child{ border-top:none; }
+  .recent-upload-empty{ color: var(--text-faint); font-style:italic; }
 
   footer.foot{
     margin-top: 46px; padding-top:18px; border-top:1px solid var(--line);
@@ -294,6 +296,10 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
       <button class="btn primary" id="jumpUpload">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
         โยนไฟล์ Excel ใหม่
+      </button>
+      <button class="btn" id="captureDashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h4l2-3h4l2 3h4v13H4z"/><circle cx="12" cy="14" r="3"/></svg>
+        ถ่ายภาพ
       </button>
     </div>
   </header>
@@ -419,14 +425,17 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
       <div class="dropzone" id="dropzone">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
         <div class="dz-title">ลากไฟล์ .xlsx มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</div>
-        <div class="dz-sub">ระบบจะแทนที่ข้อมูลในแดชบอร์ดด้วยไฟล์ที่คุณเลือก และบันทึกข้อมูลล่าสุดไว้ใน Browser อัตโนมัติ เพื่อให้เปิดใหม่หรือ Refresh แล้วยังเห็นข้อมูลเดิม</div>
+        <div class="dz-sub">ระบบจะแทนที่ข้อมูลในแดชบอร์ดทั้งหมดด้วยไฟล์ที่คุณเลือก</div>
         <input type="file" id="fileInput" accept=".xlsx,.xls">
       </div>
       <div class="upload-status" id="uploadStatus"></div>
-      <div class="save-info" id="saveInfo">กำลังตรวจสอบข้อมูลที่บันทึกไว้...</div>
-      <div style="text-align:center; margin-top:10px; display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
+      <div class="recent-upload-box">
+        <div class="recent-upload-title">รายการล่าสุดที่โยนไฟล์เข้าไป</div>
+        <ul class="recent-upload-list" id="recentUploadList"></ul>
+      </div>
+      <div style="text-align:center; margin-top:10px;">
+        <button class="btn primary" id="saveCurrentData">💾 บันทึกข้อมูลลงไฟล์ล่าสุด</button>
         <button class="btn" id="resetSample">↺ กลับไปใช้ข้อมูลตัวอย่างเดิม</button>
-        <button class="btn" id="clearSavedData">🗑 ลบข้อมูลที่บันทึกถาวร</button>
       </div>
     </div>
   </div>
@@ -448,73 +457,6 @@ const STATE = {
   selectedMonthIdx: null, // 1-12
   charts: {}
 };
-
-/* ===================== Persistent Data Storage =====================
-   ข้อมูลล่าสุดที่อัปโหลดจะถูกเก็บไว้ใน browser (localStorage)
-   จึงยังอยู่หลังปิด/เปิดหน้า Dashboard หรือกด Refresh
-   การอัปโหลด Excel ใหม่จะเขียนทับข้อมูลล่าสุดโดยอัตโนมัติ
-===================================================================== */
-const STORAGE_KEY = 'coal_stock_dashboard_data_v1';
-const STORAGE_META_KEY = 'coal_stock_dashboard_meta_v1';
-
-function savePersistentData(data, fileName='') {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    localStorage.setItem(STORAGE_META_KEY, JSON.stringify({
-      fileName,
-      savedAt: new Date().toISOString()
-    }));
-    updateSaveInfo();
-    return true;
-  } catch (err) {
-    console.error('ไม่สามารถบันทึกข้อมูลใน browser ได้:', err);
-    const status = document.getElementById('uploadStatus');
-    if (status) {
-      status.className = 'upload-status error';
-      status.textContent = 'อ่านไฟล์ได้ แต่บันทึกถาวรใน Browser ไม่สำเร็จ';
-    }
-    return false;
-  }
-}
-
-function loadPersistentData() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch (err) {
-    console.error('ข้อมูลที่บันทึกไว้เสียหาย:', err);
-    return null;
-  }
-}
-
-function loadPersistentMeta() {
-  try {
-    const raw = localStorage.getItem(STORAGE_META_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch (_) {
-    return null;
-  }
-}
-
-function clearPersistentData() {
-  localStorage.removeItem(STORAGE_KEY);
-  localStorage.removeItem(STORAGE_META_KEY);
-  updateSaveInfo();
-}
-
-function updateSaveInfo() {
-  const el = document.getElementById('saveInfo');
-  if (!el) return;
-  const meta = loadPersistentMeta();
-  if (!meta) {
-    el.textContent = 'ยังไม่มีข้อมูลที่บันทึกถาวร — ใช้ข้อมูลตัวอย่างจากหน้าเว็บ';
-    return;
-  }
-  const dt = new Date(meta.savedAt);
-  const when = isNaN(dt.getTime()) ? '-' : dt.toLocaleString('th-TH');
-  el.textContent = `✓ ข้อมูลล่าสุดถูกบันทึกในเครื่องนี้: ${meta.fileName || 'ข้อมูล Dashboard'} · ${when}`;
-}
 
 /* ---------- helpers ---------- */
 function fmt(num, opts={}) {
@@ -933,6 +875,96 @@ function renderAll() {
   - Rows 3.. (index 2..): one row per day: day number, in, out, balance.
   - A "totals" row after the days: sum(in), sum(out) in columns 1 and 2 of the block.
 */
+const latestDataStorageKey = 'coalStockDashboardLatestData';
+const latestSourceFileKey = 'coalStockDashboardLatestSourceFile';
+
+function readSavedDashboardData() {
+  try {
+    const raw = localStorage.getItem(latestDataStorageKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && parsed.year && Array.isArray(parsed.months) ? parsed : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function writeSavedDashboardData(data) {
+  try {
+    localStorage.setItem(latestDataStorageKey, JSON.stringify(data));
+  } catch (e) {
+    console.warn('ไม่สามารถบันทึกข้อมูลล่าสุดลง localStorage ได้:', e);
+  }
+}
+
+function readSavedSourceFileName() {
+  try {
+    return localStorage.getItem(latestSourceFileKey) || 'Stock_Coal.xlsx';
+  } catch (e) {
+    return 'Stock_Coal.xlsx';
+  }
+}
+
+function writeSavedSourceFileName(fileName) {
+  try {
+    localStorage.setItem(latestSourceFileKey, fileName);
+  } catch (e) {
+    console.warn('ไม่สามารถบันทึกชื่อไฟล์ล่าสุดได้:', e);
+  }
+}
+
+function buildWorkbookFromData(data) {
+  const rows = [];
+  const maxMonthCount = 12;
+  const maxCols = maxMonthCount * 4;
+
+  // Opening row; same as upstream parser expects a row immediately above 4-column header blocks.
+  rows[0] = new Array(maxCols).fill(null);
+  data.months.forEach((m, idx) => {
+    const c = idx * 4;
+    rows[0][c] = m.opening || 0;
+  });
+
+  // Header row with each month block's 4 headers.
+  rows[1] = new Array(maxCols).fill(null);
+  data.months.forEach((m, idx) => {
+    const c = idx * 4;
+    rows[1][c] = 'วันที่';
+    rows[1][c + 1] = 'ถ่านหินเข้า';
+    rows[1][c + 2] = 'ยอดเบิก';
+    rows[1][c + 3] = 'คงเหลือ';
+  });
+
+  // Daily rows: one row per day in the month, same style as uploaded workbook.
+  const daysToRender = 31;
+  for (let d = 1; d <= daysToRender; d++) {
+    const out = new Array(maxCols).fill(null);
+    data.months.forEach((m, idx) => {
+      const c = idx * 4;
+      const day = m.days.find(x => x.day === d) || { in: 0, out: 0, balance: null, hasData: false };
+      out[c] = d;
+      out[c + 1] = day.in || 0;
+      out[c + 2] = day.out || 0;
+      out[c + 3] = day.balance || 0;
+    });
+    rows.push(out);
+  }
+
+  // Totals row after the days, in the same 4-column structure.
+  const totalsRow = new Array(maxCols).fill(null);
+  data.months.forEach((m, idx) => {
+    const c = idx * 4;
+    totalsRow[c + 1] = m.totalIn || 0;
+    totalsRow[c + 2] = m.totalOut || 0;
+  });
+  rows.push(totalsRow);
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+  return wb;
+}
+
 function parseWorkbookToData(workbook) {
   const sheetName = workbook.SheetNames[0];
   const ws = workbook.Sheets[sheetName];
@@ -1041,6 +1073,90 @@ function numOrZero(v) {
 const dropzone = document.getElementById('dropzone');
 const fileInput = document.getElementById('fileInput');
 const uploadStatus = document.getElementById('uploadStatus');
+const recentUploadList = document.getElementById('recentUploadList');
+const uploadHistoryKey = 'coalStockDashboardRecentUploads';
+
+function readUploadHistory() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(uploadHistoryKey) || '[]');
+    return Array.isArray(saved) ? saved : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function writeUploadHistory(history) {
+  try {
+    localStorage.setItem(uploadHistoryKey, JSON.stringify(history));
+  } catch (e) {
+    console.warn('ไม่สามารถบันทึกประวัติไฟล์อัปโหลดได้:', e);
+  }
+}
+
+function renderUploadHistory() {
+  const history = readUploadHistory();
+  if (!history.length) {
+    recentUploadList.innerHTML = '<li class="recent-upload-empty">ยังไม่มีรายการล่าสุด</li>';
+    return;
+  }
+
+  recentUploadList.innerHTML = '';
+  history.slice(0, 8).forEach(item => {
+    const li = document.createElement('li');
+    const stamp = item.time ? new Date(item.time).toLocaleString('th-TH') : '';
+    li.textContent = `${item.name}${stamp ? ' — ' + stamp : ''}`;
+    recentUploadList.appendChild(li);
+  });
+}
+
+function recordUploadHistory(file) {
+  const history = readUploadHistory();
+  const record = {
+    name: file.name,
+    size: file.size || 0,
+    time: new Date().toISOString()
+  };
+
+  const withoutSameName = history.filter(item => item.name !== record.name);
+  withoutSameName.unshift(record);
+  const trimmed = withoutSameName.slice(0, 8);
+  writeUploadHistory(trimmed);
+  renderUploadHistory();
+}
+
+document.getElementById('captureDashboard').addEventListener('click', () => {
+  captureDashboard();
+});
+
+function captureDashboard() {
+  const target = document.querySelector('#tab-monthly').closest('.wrap') || document.body;
+  if (typeof html2canvas === 'function') {
+    uploadStatus.className = 'upload-status';
+    uploadStatus.textContent = 'กำลังถ่ายภาพหน้า Dashboard ...';
+    html2canvas(target, {
+      backgroundColor: '#14171a',
+      scale: Math.min(window.devicePixelRatio || 1, 2),
+      useCORS: true,
+      logging: false,
+      height: target.scrollHeight
+    }).then(canvas => {
+      const pngUrl = canvas.toDataURL('image/png');
+      const anchor = document.createElement('a');
+      anchor.href = pngUrl;
+      anchor.download = `Coal_Stock_Dashboard_${new Date().toISOString().slice(0, 10)}.png`;
+      anchor.click();
+      uploadStatus.className = 'upload-status ok';
+      uploadStatus.textContent = 'ถ่ายภาพสำเร็จ — บันทึกเป็น PNG';
+    }).catch(err => {
+      uploadStatus.className = 'upload-status error';
+      uploadStatus.textContent = `ไม่สามารถถ่ายภาพได้: ${err.message || 'html2canvas failed'}`;
+      console.error(err);
+    });
+  } else {
+    uploadStatus.className = 'upload-status error';
+    uploadStatus.textContent = 'ไม่สามารถถ่ายภาพได้เนื่องจาก HTML Capture Library ไม่พร้อมใช้งาน';
+  }
+}
 
 dropzone.addEventListener('click', () => fileInput.click());
 dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('drag'); });
@@ -1054,6 +1170,7 @@ fileInput.addEventListener('change', (e) => {
 });
 
 function handleFile(file) {
+  recordUploadHistory(file);
   uploadStatus.className = 'upload-status';
   uploadStatus.textContent = `กำลังอ่านไฟล์ "${file.name}" ...`;
   const reader = new FileReader();
@@ -1063,7 +1180,8 @@ function handleFile(file) {
       const parsed = parseWorkbookToData(wb);
       STATE.data = parsed;
       STATE.selectedMonthIdx = null;
-      savePersistentData(parsed, file.name);
+      writeSavedDashboardData(parsed);
+      writeSavedSourceFileName(file.name);
       const badge = document.getElementById('sourceBadge');
       badge.classList.add('uploaded');
       document.getElementById('sourceLabel').textContent = `ข้อมูลจากไฟล์ที่อัปโหลด: ${file.name}`;
@@ -1084,47 +1202,65 @@ function handleFile(file) {
   reader.readAsArrayBuffer(file);
 }
 
+document.getElementById('saveCurrentData').addEventListener('click', () => {
+  try {
+    if (!STATE.data) {
+      uploadStatus.className = 'upload-status error';
+      uploadStatus.textContent = 'ยังไม่มีข้อมูลให้บันทึก';
+      return;
+    }
+
+    const workbook = buildWorkbookFromData(STATE.data);
+    const sourceFileName = readSavedSourceFileName();
+    const targetFileName = sourceFileName && sourceFileName.trim().length > 0 ? sourceFileName : 'Stock_Coal.xlsx';
+
+    XLSX.writeFile(workbook, targetFileName);
+    uploadStatus.className = 'upload-status ok';
+    uploadStatus.textContent = `บันทึกข้อมูลลงไฟล์ล่าสุด "${targetFileName}" สำเร็จ`;
+  } catch (err) {
+    uploadStatus.className = 'upload-status error';
+    uploadStatus.textContent = `ไม่สามารถบันทึกไฟล์ได้: ${err.message}`;
+    console.error(err);
+  }
+});
+
 document.getElementById('resetSample').addEventListener('click', () => {
-  clearPersistentData();
   STATE.data = JSON.parse(document.getElementById('embedded-data').textContent);
   STATE.selectedMonthIdx = null;
   const badge = document.getElementById('sourceBadge');
   badge.classList.remove('uploaded');
   document.getElementById('sourceLabel').textContent = 'ข้อมูลตัวอย่างจากไฟล์ Stock_Coal.xlsx';
   uploadStatus.className = 'upload-status';
-  uploadStatus.textContent = 'กลับมาใช้ข้อมูลตัวอย่างแล้ว';
+  uploadStatus.textContent = '';
   fileInput.value = '';
+  // clear saved latest uploaded data/file details when back to sample.
+  try {
+    localStorage.removeItem(latestDataStorageKey);
+    localStorage.removeItem(latestSourceFileKey);
+  } catch (e) {
+    console.warn('ไม่สามารถล้างข้อมูลบันทึกล่าสุดได้:', e);
+  }
   renderAll();
 });
 
-document.getElementById('clearSavedData').addEventListener('click', () => {
-  if (!confirm('ต้องการลบข้อมูล Excel ล่าสุดที่บันทึกไว้ใน Browser นี้หรือไม่?')) return;
-  clearPersistentData();
-  STATE.data = JSON.parse(document.getElementById('embedded-data').textContent);
-  STATE.selectedMonthIdx = null;
-  const badge = document.getElementById('sourceBadge');
-  badge.classList.remove('uploaded');
-  document.getElementById('sourceLabel').textContent = 'ข้อมูลตัวอย่างจากไฟล์ Stock_Coal.xlsx';
-  uploadStatus.className = 'upload-status';
-  uploadStatus.textContent = 'ลบข้อมูลที่บันทึกไว้แล้ว และกลับมาใช้ข้อมูลตัวอย่าง';
-  fileInput.value = '';
-  renderAll();
-});
+renderUploadHistory();
 
 /* ===================== Init ===================== */
 (function init() {
-  const saved = loadPersistentData();
-  if (saved && saved.months) {
-    STATE.data = saved;
-    const meta = loadPersistentMeta();
+  const savedData = readSavedDashboardData();
+  if (savedData) {
+    STATE.data = savedData;
+    STATE.selectedMonthIdx = null;
     const badge = document.getElementById('sourceBadge');
     badge.classList.add('uploaded');
-    document.getElementById('sourceLabel').textContent =
-      `ข้อมูลที่บันทึกล่าสุด${meta && meta.fileName ? ': ' + meta.fileName : ''}`;
-  } else {
-    STATE.data = JSON.parse(document.getElementById('embedded-data').textContent);
+    const savedFileName = readSavedSourceFileName();
+    document.getElementById('sourceLabel').textContent = `ข้อมูลจากไฟล์ที่อัปโหลด: ${savedFileName}`;
+    renderAll();
+    switchTab('monthly');
+    return;
   }
-  updateSaveInfo();
+
+  STATE.data = JSON.parse(document.getElementById('embedded-data').textContent);
   renderAll();
 })();
 
