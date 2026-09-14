@@ -11,7 +11,6 @@
     
     <!-- External Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
     <style>
@@ -157,15 +156,6 @@
             transition: all 0.2s;
         }
 
-        .btn-orange {
-            background-color: var(--primary-orange);
-            color: #ffffff;
-        }
-
-        .btn-orange:hover {
-            background-color: var(--primary-orange-hover);
-        }
-
         .btn-dark {
             background-color: #212c3a;
             color: var(--text-main);
@@ -240,13 +230,13 @@
         .tank-card-body {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 12px;
             margin-top: 8px;
         }
 
         .tank-graphic {
-            width: 44px;
-            height: 70px;
+            width: 95px;
+            height: 80px;
             background-color: #111822;
             border: 2px solid #334155;
             border-radius: 10px;
@@ -254,11 +244,12 @@
             overflow: hidden;
             display: flex;
             align-items: flex-end;
+            flex-shrink: 0;
         }
 
         .tank-liquid {
             width: 100%;
-            height: 70%;
+            height: 65%;
             background: linear-gradient(180deg, #f97316 0%, #c2410c 100%);
             transition: height 0.5s ease;
         }
@@ -267,21 +258,25 @@
             position: absolute;
             width: 100%;
             border-top: 1.5px dashed;
-            font-size: 8px;
-            line-height: 0;
+            font-size: 9px;
+            font-weight: 600;
+            line-height: 1;
             padding-left: 2px;
+            z-index: 2;
+            white-space: nowrap;
+            text-shadow: 0 1px 2px #000;
         }
 
         .tank-line-max {
             top: 20%;
             border-color: var(--primary-orange);
-            color: var(--primary-orange);
+            color: #fdba74;
         }
 
         .tank-line-min {
             top: 60%;
             border-color: var(--accent-red);
-            color: var(--accent-red);
+            color: #fca5a5;
         }
 
         .status-pill {
@@ -312,10 +307,6 @@
             cursor: pointer;
             position: relative;
             transition: color 0.2s;
-        }
-
-        .tab-item:hover {
-            color: var(--text-main);
         }
 
         .tab-item.active {
@@ -379,22 +370,19 @@
             width: 100%;
         }
 
-        /* Table Tab (Hidden by default) */
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
+        /* Chart Table Section */
+        .table-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
         }
 
         .data-table {
             width: 100%;
             border-collapse: collapse;
-            background-color: var(--card-bg);
-            border-radius: 12px;
-            overflow: hidden;
-            border: 1px solid var(--card-border);
+            margin-top: 16px;
         }
 
         .data-table th, .data-table td {
@@ -410,23 +398,28 @@
             font-weight: 600;
         }
 
-        /* Upload Area */
-        .upload-zone {
-            border: 2px dashed var(--card-border);
-            border-radius: 12px;
-            padding: 48px;
-            text-align: center;
-            background-color: var(--card-bg);
-            cursor: pointer;
-            transition: border-color 0.2s;
+        .bar-cell {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
-        .upload-zone:hover {
-            border-color: var(--primary-orange);
+        .inline-bar-bg {
+            flex-grow: 1;
+            height: 8px;
+            background-color: #0f141c;
+            border-radius: 4px;
+            overflow: hidden;
+            max-width: 120px;
+        }
+
+        .inline-bar-fill {
+            height: 100%;
+            border-radius: 4px;
         }
     </style>
 </head>
-<body id="dashboardContent">
+<body>
 
 <div class="container">
     <!-- Header -->
@@ -441,16 +434,12 @@
         <div class="header-right">
             <div class="source-badge">
                 <span class="status-dot"></span>
-                <span>ข้อมูลจากไฟล์ stock_coal</span>
+                <span>ข้อมูลสดจาก stock_coal</span>
             </div>
             <div class="unit-toggle">
                 <button class="unit-btn active" id="btnTon" onclick="setUnit('ton')">ตัน</button>
                 <button class="unit-btn" id="btnKg" onclick="setUnit('kg')">กก.</button>
             </div>
-            <button class="btn-action btn-orange" onclick="document.getElementById('fileInput').click()">
-                <span>⬆</span> โยนไฟล์ Excel ใหม่
-            </button>
-            <input type="file" id="fileInput" accept=".xlsx, .xls, .csv" style="display:none;" onchange="handleFileUpload(event)">
             <button class="btn-action btn-dark" onclick="takeScreenshot()">
                 <span>📷</span> ถ่ายภาพ
             </button>
@@ -459,18 +448,18 @@
 
     <!-- KPI Cards -->
     <div class="kpi-grid">
-        <!-- Card 1: สต๊อกล่าสุด -->
+        <!-- Card 1: สต๊อกล่าสุด + Tank Gauge พร้อมเส้นบอกค่า Min / Max -->
         <div class="kpi-card">
             <div class="kpi-header">สต๊อกล่าสุด</div>
             <div class="tank-card-body">
                 <div class="tank-graphic">
-                    <div class="tank-line-max">-- MAX</div>
-                    <div class="tank-line-min">-- MIN</div>
+                    <div class="tank-line-max" id="lblTankMax">MAX: 100 ตัน</div>
+                    <div class="tank-line-min" id="lblTankMin">MIN: 60 ตัน</div>
                     <div class="tank-liquid" id="tankFill" style="height: 65%;"></div>
                 </div>
                 <div>
-                    <div class="kpi-value" id="valLatestStock">87.5 ตัน</div>
-                    <span class="status-pill">อยู่ในกรอบควบคุม</span>
+                    <div class="kpi-value" id="valLatestStock" style="font-size: 1.5rem;">86.4 ตัน</div>
+                    <span class="status-pill" id="lblStockStatus">อยู่ในกรอบควบคุม</span>
                 </div>
             </div>
         </div>
@@ -481,8 +470,8 @@
                 <span class="dot-icon" style="background-color: var(--accent-green);"></span>
                 <span>รับเข้าสะสม (YTD)</span>
             </div>
-            <div class="kpi-value" id="valYtdIn">4,168.1 ตัน</div>
-            <div class="kpi-subtext">สะสมถึงเดือนสิงหาคม</div>
+            <div class="kpi-value" id="valYtdIn">4,644.1 ตัน</div>
+            <div class="kpi-subtext">สะสมถึงเดือนกันยายน</div>
         </div>
 
         <!-- Card 3: เบิกใช้สะสม (YTD) -->
@@ -491,8 +480,8 @@
                 <span class="dot-icon" style="background-color: var(--accent-red);"></span>
                 <span>เบิกใช้สะสม (YTD)</span>
             </div>
-            <div class="kpi-value" id="valYtdOut">4,157.9 ตัน</div>
-            <div class="kpi-subtext" id="valNetBalance">สุทธิ +10.2 ตัน</div>
+            <div class="kpi-value" id="valYtdOut">4,603.4 ตัน</div>
+            <div class="kpi-subtext" id="valNetBalance">สุทธิ +40.7 ตัน</div>
         </div>
 
         <!-- Card 4: อัตราใช้เฉลี่ย/วัน -->
@@ -501,95 +490,84 @@
                 <span class="dot-icon" style="background-color: var(--primary-orange);"></span>
                 <span>อัตราใช้เฉลี่ย/วัน</span>
             </div>
-            <div class="kpi-value" id="valAvgDaily">18.16 ตัน</div>
+            <div class="kpi-value" id="valAvgDaily">20.10 ตัน</div>
             <div class="kpi-subtext">คำนวณจาก 229 วันที่มีข้อมูลจริง</div>
         </div>
 
-        <!-- Card 5: สต๊อกใช้ได้อีก -->
+        <!-- Card 5: สต๊อกใช้ได้อีก (คำนวณจากเดือนปัจจุบัน) -->
         <div class="kpi-card">
             <div class="kpi-header">
                 <span class="dot-icon" style="background-color: var(--accent-amber);"></span>
                 <span>สต๊อกใช้ได้อีก</span>
             </div>
-            <div class="kpi-value" id="valDaysLeft">5 วัน</div>
-            <div class="kpi-subtext">ประมาณการจากอัตราใช้เฉลี่ย/วัน</div>
+            <div class="kpi-value" id="valDaysLeft" style="color: #f59e0b;">4 วัน</div>
+            <div class="kpi-subtext" id="valDaysLeftSub">คิดจากสต๊อกเดือนปัจจุบัน ÷ อัตราใช้/วัน</div>
         </div>
     </div>
 
     <!-- Navigation Tabs -->
     <div class="nav-tabs">
-        <div class="tab-item active" onclick="switchTab('tabOverview', this)">ภาพรวมรายเดือน</div>
-        <div class="tab-item" onclick="switchTab('tabDaily', this)">รายละเอียดรายวัน</div>
-        <div class="tab-item" onclick="switchTab('tabUpload', this)">วิเคราะห์ไฟล์ใหม่</div>
+        <div class="tab-item active">ภาพรวมและตารางกราฟสรุปรายเดือน</div>
     </div>
 
-    <!-- Tab 1: Overview -->
-    <div id="tabOverview" class="tab-content active">
-        <div class="charts-grid">
-            <!-- Left Chart -->
-            <div class="chart-card">
-                <div class="chart-header">
-                    <div class="chart-title-box">
-                        <h3>ถ่านหินรับเข้า vs เบิกใช้ รายเดือน</h3>
-                        <p>เปรียบเทียบปริมาณรับเข้าและเบิกใช้ในแต่ละเดือน (เดือนที่ยังไม่ถึงจะแสดงเป็นค่าว่าง)</p>
-                    </div>
-                </div>
-                <div class="chart-container">
-                    <canvas id="barChartInVsOut"></canvas>
-                </div>
-            </div>
-
-            <!-- Right Chart -->
-            <div class="chart-card">
-                <div class="chart-header">
-                    <div class="chart-title-box">
-                        <h3>แนวโน้มสต๊อกคงเหลือปลายเดือน</h3>
-                        <p>เทียบกับขอบเขตควบคุม (Max / Min)</p>
-                    </div>
-                </div>
-                <div class="chart-container">
-                    <canvas id="lineChartTrend"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tab 2: Daily Details -->
-    <div id="tabDaily" class="tab-content">
+    <!-- Main Charts Grid -->
+    <div class="charts-grid">
+        <!-- Left Chart -->
         <div class="chart-card">
-            <h3 style="margin-bottom: 16px; color:#fff;">ตารางสรุปข้อมูลรายเดือน</h3>
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>เดือน</th>
-                        <th>รับเข้ารวม (กก.)</th>
-                        <th>เบิกใช้รวม (กก.)</th>
-                        <th>คงเหลือปลายเดือน (กก.)</th>
-                        <th>สถานะ</th>
-                    </tr>
-                </thead>
-                <tbody id="summaryTableBody">
-                    <!-- Dynamic Rows -->
-                </tbody>
-            </table>
+            <div class="chart-header">
+                <div class="chart-title-box">
+                    <h3>ถ่านหินรับเข้า vs เบิกใช้ รายเดือน</h3>
+                    <p>เปรียบเทียบปริมาณรับเข้าและเบิกใช้ในแต่ละเดือน</p>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="barChartInVsOut"></canvas>
+            </div>
+        </div>
+
+        <!-- Right Chart -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <div class="chart-title-box">
+                    <h3>แนวโน้มสต๊อกคงเหลือปลายเดือน</h3>
+                    <p>เทียบกับขอบเขตควบคุม (Max / Min)</p>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="lineChartTrend"></canvas>
+            </div>
         </div>
     </div>
 
-    <!-- Tab 3: Upload Area -->
-    <div id="tabUpload" class="tab-content">
-        <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
-            <div style="font-size: 48px; margin-bottom: 12px;">📁</div>
-            <h3 style="color:#fff; margin-bottom: 8px;">คลิก หรือ ลากไฟล์ Excel / CSV มาวางที่นี่</h3>
-            <p style="color: var(--text-muted);">รองรับไฟล์ .xlsx, .xls และ .csv จากระบบ Stock Coal</p>
+    <!-- Chart Table Section -->
+    <div class="table-card">
+        <div class="chart-title-box">
+            <h3>📊 ตารางกราฟสรุปข้อมูลสต๊อกถ่านหินรายเดือน (Chart Table)</h3>
+            <p>แสดงรายละเอียดตัวเลขพร้อมกราฟความหนาแน่นแถบสีเปรียบเทียบแต่ละเดือน</p>
         </div>
+
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>เดือน</th>
+                    <th>รับเข้ารวม</th>
+                    <th>เบิกใช้รวม</th>
+                    <th>คงเหลือปลายเดือน</th>
+                    <th>สถานะการควบคุม</th>
+                </tr>
+            </thead>
+            <tbody id="chartTableBody">
+                <!-- Dynamic Content Generated by JS -->
+            </tbody>
+        </table>
     </div>
 </div>
 
 <script>
-    // State Variables
     let currentUnit = 'ton'; // 'ton' or 'kg'
     let rawData = {
-        months: ['Jan-69', 'Feb-68', 'Mar-69', 'Apr-69', 'May-69', 'Jun-69', 'Jul-69', 'Aug-69', 'Sep-69', 'Oct-69', 'Nov-69', 'Dec-69'],
+        monthsShort: ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'],
+        monthsFull: ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'],
         coalInKg: [570850, 528010, 780320, 648410, 589300, 418320, 441570, 500780, 157090, 0, 0, 0],
         coalOutKg: [595304, 538416, 627075, 578079, 516984, 411890, 568879, 547031, 219728, 0, 0, 0],
         endingStockKg: [58095.30, 46577.30, 200554.33, 270705.31, 342861.30, 344733.30, 217424.30, 149078.34, 86440.34, 86440.34, 86440.34, 86440.34],
@@ -600,7 +578,6 @@
     let barChartInstance = null;
     let lineChartInstance = null;
 
-    // Google Sheets API Integration
     const SHEET_ID = '1_v4hGMALYZtLSsQ2959Kos4IBBDQoQNqfMSQz084A_k';
     const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
 
@@ -612,7 +589,6 @@
             const json = JSON.parse(jsonText);
             const rows = json.table.rows;
 
-            // Parse Google Sheet Data
             let summaryRow = null;
             for (let i = rows.length - 1; i >= 0; i--) {
                 if (rows[i].c && rows[i].c[0] && parseNum(rows[i].c[0].v) > 100000) {
@@ -644,7 +620,7 @@
 
             updateDashboard();
         } catch (e) {
-            console.log("Loaded default offline dataset:", e);
+            console.log("Loaded default dataset:", e);
             updateDashboard();
         }
     }
@@ -656,7 +632,6 @@
         return parseFloat(str) || 0;
     }
 
-    // Unit Toggle
     function setUnit(unit) {
         currentUnit = unit;
         document.getElementById('btnTon').classList.toggle('active', unit === 'ton');
@@ -664,61 +639,95 @@
         updateDashboard();
     }
 
-    // Dashboard Update Handler
     function updateDashboard() {
         const isTon = currentUnit === 'ton';
         const factor = isTon ? 0.001 : 1;
         const unitText = isTon ? 'ตัน' : 'กก.';
 
-        // Calculate YTD
+        // YTD Totals
         const ytdIn = rawData.coalInKg.reduce((a, b) => a + b, 0) * factor;
         const ytdOut = rawData.coalOutKg.reduce((a, b) => a + b, 0) * factor;
-        const latestStock = rawData.endingStockKg[8] * factor; // Sep stock
-        const avgDaily = (rawData.coalOutKg.reduce((a, b) => a + b, 0) / 229) * factor;
-        const daysLeft = Math.round((latestStock) / (avgDaily || 1));
+        
+        // Find Current Month (Last month with stock data, i.e. September)
+        let currentMonthIdx = 8;
+        for (let i = 11; i >= 0; i--) {
+            if (rawData.endingStockKg[i] > 0) {
+                currentMonthIdx = i;
+                break;
+            }
+        }
 
-        // Update KPI Texts
-        document.getElementById('valLatestStock').innerText = `${latestStock.toLocaleString(undefined, {maximumFractionDigits: 1})} ${unitText}`;
+        const currentMonthName = rawData.monthsFull[currentMonthIdx];
+        const currentStockVal = rawData.endingStockKg[currentMonthIdx] * factor; // สต๊อกเดือนปัจจุบัน
+        
+        // อัตราใช้เฉลี่ยต่อวัน (229 วัน)
+        const avgDaily = (rawData.coalOutKg.reduce((a, b) => a + b, 0) / 229) * factor;
+
+        // คำนวณจำนวนวันที่เหลือสำหรับสต๊อกเดือนปัจจุบัน
+        const daysLeft = avgDaily > 0 ? Math.floor(currentStockVal / avgDaily) : 0;
+
+        // Update KPI Values
+        document.getElementById('valLatestStock').innerText = `${currentStockVal.toLocaleString(undefined, {maximumFractionDigits: 1})} ${unitText}`;
         document.getElementById('valYtdIn').innerText = `${ytdIn.toLocaleString(undefined, {maximumFractionDigits: 1})} ${unitText}`;
         document.getElementById('valYtdOut').innerText = `${ytdOut.toLocaleString(undefined, {maximumFractionDigits: 1})} ${unitText}`;
         document.getElementById('valNetBalance').innerText = `สุทธิ +${(ytdIn - ytdOut).toLocaleString(undefined, {maximumFractionDigits: 1})} ${unitText}`;
         document.getElementById('valAvgDaily').innerText = `${avgDaily.toLocaleString(undefined, {maximumFractionDigits: 2})} ${unitText}`;
+        
+        // Update Days Left KPI Card
         document.getElementById('valDaysLeft').innerText = `${daysLeft} วัน`;
+        document.getElementById('valDaysLeftSub').innerText = `สต๊อกเดือน${currentMonthName} (${currentStockVal.toLocaleString(undefined, {maximumFractionDigits: 1})} ${unitText}) ÷ อัตราใช้/วัน`;
 
-        // Tank Liquid Height Calculation (%)
-        const maxLimit = rawData.maxLimitKg * factor;
-        const tankPct = Math.min(Math.max((latestStock / maxLimit) * 100, 10), 95);
+        // Update Tank Gauge Values & Labels
+        const maxVal = rawData.maxLimitKg * factor;
+        const minVal = rawData.minLimitKg * factor;
+
+        document.getElementById('lblTankMax').innerText = isTon ? `MAX: ${maxVal} ตัน` : `MAX: ${maxVal.toLocaleString()} กก.`;
+        document.getElementById('lblTankMin').innerText = isTon ? `MIN: ${minVal} ตัน` : `MIN: ${minVal.toLocaleString()} กก.`;
+
+        const tankPct = Math.min(Math.max((currentStockVal / maxVal) * 100, 12), 95);
         document.getElementById('tankFill').style.height = `${tankPct}%`;
 
-        // Update Charts & Table
+        // Tank Status Pill
+        const statusPill = document.getElementById('lblStockStatus');
+        if (currentStockVal < minVal) {
+            statusPill.innerText = "วิกฤต (< MIN)";
+            statusPill.style.color = "#ef4444";
+            statusPill.style.backgroundColor = "rgba(239, 68, 68, 0.15)";
+            statusPill.style.borderColor = "rgba(239, 68, 68, 0.3)";
+        } else {
+            statusPill.innerText = "อยู่ในกรอบควบคุม";
+            statusPill.style.color = "#fb923c";
+            statusPill.style.backgroundColor = "rgba(249, 115, 22, 0.15)";
+            statusPill.style.borderColor = "rgba(249, 115, 22, 0.3)";
+        }
+
         renderCharts(factor, unitText);
-        renderTable();
+        renderChartTable(factor, unitText);
     }
 
     function renderCharts(factor, unitText) {
         if (barChartInstance) barChartInstance.destroy();
         if (lineChartInstance) lineChartInstance.destroy();
 
-        const monthsShort = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
         const inData = rawData.coalInKg.map(v => v * factor);
         const outData = rawData.coalOutKg.map(v => v * factor);
         const stockData = rawData.endingStockKg.map(v => v * factor);
 
-        // Chart 1: Bar Chart (In vs Out)
+        // Chart 1: Bar Chart
         const ctxBar = document.getElementById('barChartInVsOut').getContext('2d');
         barChartInstance = new Chart(ctxBar, {
             type: 'bar',
             data: {
-                labels: monthsShort,
+                labels: rawData.monthsShort,
                 datasets: [
                     {
-                        label: 'รับเข้า',
+                        label: `รับเข้า (${unitText})`,
                         data: inData,
                         backgroundColor: '#10b981',
                         borderRadius: 4
                     },
                     {
-                        label: 'เบิกใช้',
+                        label: `เบิกใช้ (${unitText})`,
                         data: outData,
                         backgroundColor: '#ef4444',
                         borderRadius: 4
@@ -738,15 +747,15 @@
             }
         });
 
-        // Chart 2: Line Chart (Stock Trend vs Thresholds)
+        // Chart 2: Line Chart
         const ctxLine = document.getElementById('lineChartTrend').getContext('2d');
         lineChartInstance = new Chart(ctxLine, {
             type: 'line',
             data: {
-                labels: monthsShort,
+                labels: rawData.monthsShort,
                 datasets: [
                     {
-                        label: 'คงเหลือปลายเดือน',
+                        label: `คงเหลือปลายเดือน (${unitText})`,
                         data: stockData,
                         borderColor: '#f59e0b',
                         backgroundColor: 'rgba(245, 158, 11, 0.1)',
@@ -755,7 +764,7 @@
                         tension: 0.3
                     },
                     {
-                        label: 'Max',
+                        label: 'Max Threshold',
                         data: Array(12).fill(rawData.maxLimitKg * factor),
                         borderColor: '#f97316',
                         borderDash: [6, 6],
@@ -764,7 +773,7 @@
                         fill: false
                     },
                     {
-                        label: 'Min',
+                        label: 'Min Threshold',
                         data: Array(12).fill(rawData.minLimitKg * factor),
                         borderColor: '#ef4444',
                         borderDash: [6, 6],
@@ -788,40 +797,64 @@
         });
     }
 
-    function renderTable() {
-        const tbody = document.getElementById('summaryTableBody');
-        const monthsShort = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+    function renderChartTable(factor, unitText) {
+        const tbody = document.getElementById('chartTableBody');
         let html = '';
 
+        const maxValIn = Math.max(...rawData.coalInKg) * factor || 1;
+        const maxValOut = Math.max(...rawData.coalOutKg) * factor || 1;
+        const maxValStock = Math.max(...rawData.endingStockKg) * factor || 1;
+
         for (let i = 0; i < 12; i++) {
-            const stock = rawData.endingStockKg[i];
-            const status = stock < rawData.minLimitKg ? 
-                '<span style="color: var(--accent-red); font-weight:600;">ต่ำกว่าเกณฑ์ Min</span>' : 
-                '<span style="color: var(--accent-green); font-weight:600;">ปกติ</span>';
+            const inVal = rawData.coalInKg[i] * factor;
+            const outVal = rawData.coalOutKg[i] * factor;
+            const stockVal = rawData.endingStockKg[i] * factor;
+
+            const pctIn = (inVal / maxValIn) * 100;
+            const pctOut = (outVal / maxValOut) * 100;
+            const pctStock = (stockVal / maxValStock) * 100;
+
+            let statusTag = '<span style="color: var(--accent-green); font-weight:600;">ปกติ</span>';
+            if (stockVal > 0 && stockVal < rawData.minLimitKg * factor) {
+                statusTag = '<span style="color: var(--accent-red); font-weight:600;">ต่ำกว่า Min (วิกฤต)</span>';
+            } else if (stockVal > rawData.maxLimitKg * factor) {
+                statusTag = '<span style="color: var(--primary-orange); font-weight:600;">เกิน Max</span>';
+            }
 
             html += `
                 <tr>
-                    <td>${monthsShort[i]}</td>
-                    <td>${rawData.coalInKg[i].toLocaleString()}</td>
-                    <td>${rawData.coalOutKg[i].toLocaleString()}</td>
-                    <td>${stock.toLocaleString()}</td>
-                    <td>${status}</td>
+                    <td style="font-weight: 600;">${rawData.monthsFull[i]}</td>
+                    <td>
+                        <div class="bar-cell">
+                            <span>${inVal.toLocaleString(undefined, {maximumFractionDigits: 1})} ${unitText}</span>
+                            <div class="inline-bar-bg">
+                                <div class="inline-bar-fill" style="width: ${pctIn}%; background-color: var(--accent-green);"></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="bar-cell">
+                            <span>${outVal.toLocaleString(undefined, {maximumFractionDigits: 1})} ${unitText}</span>
+                            <div class="inline-bar-bg">
+                                <div class="inline-bar-fill" style="width: ${pctOut}%; background-color: var(--accent-red);"></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="bar-cell">
+                            <span>${stockVal.toLocaleString(undefined, {maximumFractionDigits: 1})} ${unitText}</span>
+                            <div class="inline-bar-bg">
+                                <div class="inline-bar-fill" style="width: ${pctStock}%; background-color: var(--accent-amber);"></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>${statusTag}</td>
                 </tr>
             `;
         }
         tbody.innerHTML = html;
     }
 
-    // Switch Tabs
-    function switchTab(tabId, el) {
-        document.querySelectorAll('.tab-item').forEach(item => item.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-        
-        el.classList.add('active');
-        document.getElementById(tabId).classList.add('active');
-    }
-
-    // Take Screenshot (html2canvas)
     function takeScreenshot() {
         html2canvas(document.body).then(canvas => {
             const link = document.createElement('a');
@@ -831,22 +864,6 @@
         });
     }
 
-    // File Upload Handler (SheetJS)
-    function handleFileUpload(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, {type: 'array'});
-            alert(`โหลดไฟล์ ${file.name} สำเร็จ! กำลังประมวลผลข้อมูลใหม่...`);
-            // Custom parsing logic can be extended here
-        };
-        reader.readAsArrayBuffer(file);
-    }
-
-    // Initialize on Page Load
     window.onload = function() {
         fetchGoogleSheetData();
     };
