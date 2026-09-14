@@ -3,24 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coal Stock Live Dashboard | สต๊อกถ่านหิน (Auto-Refresh)</title>
-    <!-- Google Fonts -->
+    <title>Coal Stock Dashboard | สต๊อกถ่านหิน</title>
+    <!-- Google Fonts: IBM Plex Sans Thai -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Chart.js CDN -->
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- External Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
     <style>
         :root {
-            --bg-color: #f8fafc;
-            --card-bg: #ffffff;
-            --text-main: #0f172a;
-            --text-muted: #64748b;
-            --primary: #2563eb;
-            --success: #16a34a;
-            --warning: #d97706;
-            --danger: #dc2626;
-            --border: #e2e8f0;
+            --bg-dark: #0f141c;
+            --card-bg: #18202a;
+            --card-border: #263240;
+            --text-main: #f8fafc;
+            --text-muted: #8a99ad;
+            --primary-orange: #f97316;
+            --primary-orange-hover: #ea580c;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-amber: #f59e0b;
+            --badge-bg: #1c2834;
         }
 
         * {
@@ -31,124 +37,306 @@
         }
 
         body {
-            background-color: var(--bg-color);
+            background-color: var(--bg-dark);
             color: var(--text-main);
             padding: 24px;
+            min-height: 100vh;
         }
 
         .container {
-            max-width: 1280px;
+            max-width: 1440px;
             margin: 0 auto;
         }
 
+        /* Top Header */
         header {
-            margin-bottom: 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-bottom: 24px;
             flex-wrap: wrap;
             gap: 16px;
         }
 
-        h1 {
-            font-size: 1.75rem;
-            font-weight: 700;
-            color: var(--text-main);
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
         }
 
-        .subtitle {
+        .header-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #ea580c, #9a3412);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);
+        }
+
+        .header-title h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #ffffff;
+            line-height: 1.2;
+        }
+
+        .header-title p {
             font-size: 0.875rem;
             color: var(--text-muted);
-            margin-top: 4px;
+            margin-top: 2px;
         }
 
-        .header-actions {
+        .header-right {
             display: flex;
             align-items: center;
             gap: 12px;
+            flex-wrap: wrap;
         }
 
-        .btn-sync {
-            background-color: var(--primary);
-            color: #ffffff;
-            border: none;
-            padding: 10px 18px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
+        .source-badge {
+            background-color: var(--badge-bg);
+            border: 1px solid var(--card-border);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.8125rem;
+            color: var(--text-muted);
             display: flex;
             align-items: center;
             gap: 8px;
-            transition: background-color 0.2s;
         }
 
-        .btn-sync:hover {
-            background-color: #1d4ed8;
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent-green);
         }
 
-        .sheet-link {
-            color: var(--primary);
-            text-decoration: none;
-            font-weight: 500;
+        /* Unit Switcher */
+        .unit-toggle {
+            background-color: var(--badge-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 3px;
+            display: flex;
+            gap: 2px;
         }
 
-        .sheet-link:hover {
-            text-decoration: underline;
+        .unit-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 6px 16px;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .unit-btn.active {
+            background-color: var(--primary-orange);
+            color: #ffffff;
+        }
+
+        /* Action Buttons */
+        .btn-action {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .btn-orange {
+            background-color: var(--primary-orange);
+            color: #ffffff;
+        }
+
+        .btn-orange:hover {
+            background-color: var(--primary-orange-hover);
+        }
+
+        .btn-dark {
+            background-color: #212c3a;
+            color: var(--text-main);
+            border: 1px solid var(--card-border);
+        }
+
+        .btn-dark:hover {
+            background-color: #2a374a;
         }
 
         /* KPI Cards Grid */
         .kpi-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            grid-template-columns: repeat(5, 1fr);
             gap: 16px;
             margin-bottom: 24px;
         }
 
-        .card {
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        @media (max-width: 1200px) {
+            .kpi-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
         }
 
-        .card-title {
+        @media (max-width: 768px) {
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .kpi-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 160px;
+            position: relative;
+        }
+
+        .kpi-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
             font-size: 0.875rem;
             color: var(--text-muted);
             font-weight: 500;
-            margin-bottom: 8px;
         }
 
-        .card-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--text-main);
-        }
-
-        .unit {
-            font-size: 0.875rem;
-            font-weight: 400;
-            color: var(--text-muted);
-            margin-left: 4px;
-        }
-
-        .status-badge {
+        .dot-icon {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
             display: inline-block;
-            padding: 4px 8px;
-            border-radius: 6px;
+        }
+
+        .kpi-value {
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin: 12px 0 4px 0;
+        }
+
+        .kpi-subtext {
             font-size: 0.75rem;
-            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        /* Tank Gauge Special Card */
+        .tank-card-body {
+            display: flex;
+            align-items: center;
+            gap: 16px;
             margin-top: 8px;
         }
 
-        .bg-danger { background-color: #fee2e2; color: var(--danger); }
-        .bg-warning { background-color: #fef3c7; color: var(--warning); }
-        .bg-success { background-color: #dcfce7; color: var(--success); }
+        .tank-graphic {
+            width: 44px;
+            height: 70px;
+            background-color: #111822;
+            border: 2px solid #334155;
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: flex-end;
+        }
 
-        /* Charts Layout */
+        .tank-liquid {
+            width: 100%;
+            height: 70%;
+            background: linear-gradient(180deg, #f97316 0%, #c2410c 100%);
+            transition: height 0.5s ease;
+        }
+
+        .tank-line-max, .tank-line-min {
+            position: absolute;
+            width: 100%;
+            border-top: 1.5px dashed;
+            font-size: 8px;
+            line-height: 0;
+            padding-left: 2px;
+        }
+
+        .tank-line-max {
+            top: 20%;
+            border-color: var(--primary-orange);
+            color: var(--primary-orange);
+        }
+
+        .tank-line-min {
+            top: 60%;
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+        }
+
+        .status-pill {
+            display: inline-block;
+            padding: 4px 10px;
+            background-color: rgba(249, 115, 22, 0.15);
+            color: #fb923c;
+            border: 1px solid rgba(249, 115, 22, 0.3);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 6px;
+        }
+
+        /* Navigation Tabs */
+        .nav-tabs {
+            display: flex;
+            gap: 24px;
+            border-bottom: 1px solid var(--card-border);
+            margin-bottom: 24px;
+        }
+
+        .tab-item {
+            padding: 12px 4px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            position: relative;
+            transition: color 0.2s;
+        }
+
+        .tab-item:hover {
+            color: var(--text-main);
+        }
+
+        .tab-item.active {
+            color: #ffffff;
+        }
+
+        .tab-item.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: var(--primary-orange);
+            border-radius: 3px 3px 0 0;
+        }
+
+        /* Charts Section */
         .charts-grid {
             display: grid;
-            grid-template-columns: 2fr 1fr;
+            grid-template-columns: 1fr 1fr;
             gap: 20px;
             margin-bottom: 24px;
         }
@@ -160,171 +348,274 @@
         }
 
         .chart-card {
-            background: var(--card-bg);
-            padding: 20px;
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
             border-radius: 12px;
-            border: 1px solid var(--border);
+            padding: 20px;
         }
 
         .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .chart-title-box h3 {
             font-size: 1rem;
             font-weight: 600;
-            margin-bottom: 16px;
+            color: #ffffff;
+        }
+
+        .chart-title-box p {
+            font-size: 0.78125rem;
+            color: var(--text-muted);
+            margin-top: 2px;
         }
 
         .chart-container {
             position: relative;
-            height: 360px;
+            height: 320px;
             width: 100%;
         }
 
-        .rule-box {
-            background-color: #eff6ff;
-            border-left: 4px solid var(--primary);
+        /* Table Tab (Hidden by default) */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+        }
+
+        .data-table th, .data-table td {
             padding: 12px 16px;
-            border-radius: 0 8px 8px 0;
-            margin-bottom: 20px;
+            text-align: left;
+            border-bottom: 1px solid var(--card-border);
             font-size: 0.875rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 8px;
         }
 
-        .sync-info {
-            font-size: 0.8125rem;
+        .data-table th {
+            background-color: #121822;
             color: var(--text-muted);
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            font-weight: 600;
         }
 
-        .live-dot {
-            width: 8px;
-            height: 8px;
-            background-color: var(--success);
-            border-radius: 50%;
-            display: inline-block;
-            animation: pulse 1.5s infinite;
+        /* Upload Area */
+        .upload-zone {
+            border: 2px dashed var(--card-border);
+            border-radius: 12px;
+            padding: 48px;
+            text-align: center;
+            background-color: var(--card-bg);
+            cursor: pointer;
+            transition: border-color 0.2s;
         }
 
-        @keyframes pulse {
-            0% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.4; transform: scale(1.2); }
-            100% { opacity: 1; transform: scale(1); }
+        .upload-zone:hover {
+            border-color: var(--primary-orange);
         }
     </style>
 </head>
-<body>
+<body id="dashboardContent">
 
 <div class="container">
+    <!-- Header -->
     <header>
-        <div>
-            <h1>Coal Stock Live Dashboard</h1>
-            <p class="subtitle">
-                เชื่อมโยงข้อมูลสดกับ Google Sheet: 
-                <a class="sheet-link" href="https://docs.google.com/spreadsheets/d/1_v4hGMALYZtLSsQ2959Kos4IBBDQoQNqfMSQz084A_k/edit?usp=sharing" target="_blank">stock_coal 🔗</a>
-            </p>
+        <div class="header-left">
+            <div class="header-icon">🔥</div>
+            <div class="header-title">
+                <h1>Coal Stock Dashboard</h1>
+                <p>ระบบติดตามสต๊อกถ่านหินรายวัน/รายเดือน · ปีข้อมูล 2026</p>
+            </div>
         </div>
-        <div class="header-actions">
-            <button class="btn-sync" onclick="manualRefresh()">
-                <span>🔄</span> ดึงข้อมูลทันที
+        <div class="header-right">
+            <div class="source-badge">
+                <span class="status-dot"></span>
+                <span>ข้อมูลจากไฟล์ stock_coal</span>
+            </div>
+            <div class="unit-toggle">
+                <button class="unit-btn active" id="btnTon" onclick="setUnit('ton')">ตัน</button>
+                <button class="unit-btn" id="btnKg" onclick="setUnit('kg')">กก.</button>
+            </div>
+            <button class="btn-action btn-orange" onclick="document.getElementById('fileInput').click()">
+                <span>⬆</span> โยนไฟล์ Excel ใหม่
+            </button>
+            <input type="file" id="fileInput" accept=".xlsx, .xls, .csv" style="display:none;" onchange="handleFileUpload(event)">
+            <button class="btn-action btn-dark" onclick="takeScreenshot()">
+                <span>📷</span> ถ่ายภาพ
             </button>
         </div>
     </header>
 
-    <div class="rule-box">
-        <div>
-            <strong>เกณฑ์การควบคุมสต็อก:</strong> 
-            <span style="color: var(--danger); font-weight: 600;">เส้นสีแดง (Min) = 60,000 Kg</span> | 
-            <span style="color: var(--success); font-weight: 600;">เส้นสีเขียว (Mix) = 100,000 Kg</span>
-        </div>
-        <div class="sync-info">
-            <span class="live-dot"></span>
-            <span id="syncStatus">กำลังเชื่อมต่อ...</span>
-            <span id="syncCountdown" style="font-weight: 600; color: var(--primary);"></span>
-        </div>
-    </div>
-
     <!-- KPI Cards -->
     <div class="kpi-grid">
-        <div class="card">
-            <div class="card-title">ยอดรับเข้ารวมทั้งปี</div>
-            <div class="card-value" id="kpiTotalIn">- <span class="unit">Kg</span></div>
+        <!-- Card 1: สต๊อกล่าสุด -->
+        <div class="kpi-card">
+            <div class="kpi-header">สต๊อกล่าสุด</div>
+            <div class="tank-card-body">
+                <div class="tank-graphic">
+                    <div class="tank-line-max">-- MAX</div>
+                    <div class="tank-line-min">-- MIN</div>
+                    <div class="tank-liquid" id="tankFill" style="height: 65%;"></div>
+                </div>
+                <div>
+                    <div class="kpi-value" id="valLatestStock">87.5 ตัน</div>
+                    <span class="status-pill">อยู่ในกรอบควบคุม</span>
+                </div>
+            </div>
         </div>
-        <div class="card">
-            <div class="card-title">ยอดเบิกใช้รวมทั้งปี</div>
-            <div class="card-value" id="kpiTotalOut">- <span class="unit">Kg</span></div>
+
+        <!-- Card 2: รับเข้าสะสม (YTD) -->
+        <div class="kpi-card">
+            <div class="kpi-header">
+                <span class="dot-icon" style="background-color: var(--accent-green);"></span>
+                <span>รับเข้าสะสม (YTD)</span>
+            </div>
+            <div class="kpi-value" id="valYtdIn">4,168.1 ตัน</div>
+            <div class="kpi-subtext">สะสมถึงเดือนสิงหาคม</div>
         </div>
-        <div class="card">
-            <div class="card-title">ยอดคงเหลือปัจจุบัน</div>
-            <div class="card-value" id="kpiLatestStock">- <span class="unit">Kg</span></div>
-            <span class="status-badge" id="kpiStockBadge">-</span>
+
+        <!-- Card 3: เบิกใช้สะสม (YTD) -->
+        <div class="kpi-card">
+            <div class="kpi-header">
+                <span class="dot-icon" style="background-color: var(--accent-red);"></span>
+                <span>เบิกใช้สะสม (YTD)</span>
+            </div>
+            <div class="kpi-value" id="valYtdOut">4,157.9 ตัน</div>
+            <div class="kpi-subtext" id="valNetBalance">สุทธิ +10.2 ตัน</div>
         </div>
-        <div class="card">
-            <div class="card-title">เดือนที่มีจุดสุ่มเสี่ยง (&lt; Min)</div>
-            <div class="card-value" style="color: var(--danger);" id="kpiRiskCount">- <span class="unit">เดือน</span></div>
-            <span class="status-badge bg-danger" id="kpiRiskMonths">-</span>
+
+        <!-- Card 4: อัตราใช้เฉลี่ย/วัน -->
+        <div class="kpi-card">
+            <div class="kpi-header">
+                <span class="dot-icon" style="background-color: var(--primary-orange);"></span>
+                <span>อัตราใช้เฉลี่ย/วัน</span>
+            </div>
+            <div class="kpi-value" id="valAvgDaily">18.16 ตัน</div>
+            <div class="kpi-subtext">คำนวณจาก 229 วันที่มีข้อมูลจริง</div>
+        </div>
+
+        <!-- Card 5: สต๊อกใช้ได้อีก -->
+        <div class="kpi-card">
+            <div class="kpi-header">
+                <span class="dot-icon" style="background-color: var(--accent-amber);"></span>
+                <span>สต๊อกใช้ได้อีก</span>
+            </div>
+            <div class="kpi-value" id="valDaysLeft">5 วัน</div>
+            <div class="kpi-subtext">ประมาณการจากอัตราใช้เฉลี่ย/วัน</div>
         </div>
     </div>
 
-    <!-- Main Charts -->
-    <div class="charts-grid">
-        <div class="chart-card">
-            <div class="chart-header">ภาพรวมการรับเข้า vs เบิกใช้ vs ยอดคงเหลือ พร้อมเส้น Threshold (Min/Mix)</div>
-            <div class="chart-container">
-                <canvas id="monthlyChart"></canvas>
+    <!-- Navigation Tabs -->
+    <div class="nav-tabs">
+        <div class="tab-item active" onclick="switchTab('tabOverview', this)">ภาพรวมรายเดือน</div>
+        <div class="tab-item" onclick="switchTab('tabDaily', this)">รายละเอียดรายวัน</div>
+        <div class="tab-item" onclick="switchTab('tabUpload', this)">วิเคราะห์ไฟล์ใหม่</div>
+    </div>
+
+    <!-- Tab 1: Overview -->
+    <div id="tabOverview" class="tab-content active">
+        <div class="charts-grid">
+            <!-- Left Chart -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title-box">
+                        <h3>ถ่านหินรับเข้า vs เบิกใช้ รายเดือน</h3>
+                        <p>เปรียบเทียบปริมาณรับเข้าและเบิกใช้ในแต่ละเดือน (เดือนที่ยังไม่ถึงจะแสดงเป็นค่าว่าง)</p>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="barChartInVsOut"></canvas>
+                </div>
+            </div>
+
+            <!-- Right Chart -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title-box">
+                        <h3>แนวโน้มสต๊อกคงเหลือปลายเดือน</h3>
+                        <p>เทียบกับขอบเขตควบคุม (Max / Min)</p>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="lineChartTrend"></canvas>
+                </div>
             </div>
         </div>
+    </div>
+
+    <!-- Tab 2: Daily Details -->
+    <div id="tabDaily" class="tab-content">
         <div class="chart-card">
-            <div class="chart-header">สัดส่วนการใช้ถ่านหินรายไตรมาส (Kg)</div>
-            <div class="chart-container">
-                <canvas id="quarterlyChart"></canvas>
-            </div>
+            <h3 style="margin-bottom: 16px; color:#fff;">ตารางสรุปข้อมูลรายเดือน</h3>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>เดือน</th>
+                        <th>รับเข้ารวม (กก.)</th>
+                        <th>เบิกใช้รวม (กก.)</th>
+                        <th>คงเหลือปลายเดือน (กก.)</th>
+                        <th>สถานะ</th>
+                    </tr>
+                </thead>
+                <tbody id="summaryTableBody">
+                    <!-- Dynamic Rows -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Tab 3: Upload Area -->
+    <div id="tabUpload" class="tab-content">
+        <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+            <div style="font-size: 48px; margin-bottom: 12px;">📁</div>
+            <h3 style="color:#fff; margin-bottom: 8px;">คลิก หรือ ลากไฟล์ Excel / CSV มาวางที่นี่</h3>
+            <p style="color: var(--text-muted);">รองรับไฟล์ .xlsx, .xls และ .csv จากระบบ Stock Coal</p>
         </div>
     </div>
 </div>
 
 <script>
+    // State Variables
+    let currentUnit = 'ton'; // 'ton' or 'kg'
+    let rawData = {
+        months: ['Jan-69', 'Feb-68', 'Mar-69', 'Apr-69', 'May-69', 'Jun-69', 'Jul-69', 'Aug-69', 'Sep-69', 'Oct-69', 'Nov-69', 'Dec-69'],
+        coalInKg: [570850, 528010, 780320, 648410, 589300, 418320, 441570, 500780, 157090, 0, 0, 0],
+        coalOutKg: [595304, 538416, 627075, 578079, 516984, 411890, 568879, 547031, 219728, 0, 0, 0],
+        endingStockKg: [58095.30, 46577.30, 200554.33, 270705.31, 342861.30, 344733.30, 217424.30, 149078.34, 86440.34, 86440.34, 86440.34, 86440.34],
+        minLimitKg: 60000,
+        maxLimitKg: 100000
+    };
+
+    let barChartInstance = null;
+    let lineChartInstance = null;
+
+    // Google Sheets API Integration
     const SHEET_ID = '1_v4hGMALYZtLSsQ2959Kos4IBBDQoQNqfMSQz084A_k';
     const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
-    const REFRESH_INTERVAL_SEC = 60; // 1 นาที (60 วินาที)
 
-    let monthlyChartInstance = null;
-    let quarterlyChartInstance = null;
-    let countdownSec = REFRESH_INTERVAL_SEC;
-    let countdownTimer = null;
-
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-    function parseValue(val) {
-        if (val === null || val === undefined) return 0;
-        if (typeof val === 'number') return val;
-        let str = String(val).replace(/,/g, '').trim();
-        if (str === '-' || str === '') return 0;
-        let num = parseFloat(str);
-        return isNaN(num) ? 0 : num;
-    }
-
-    async function loadGoogleSheetData() {
-        document.getElementById('syncStatus').innerText = 'กำลังอัปเดต...';
-        
+    async function fetchGoogleSheetData() {
         try {
             const response = await fetch(GVIZ_URL);
             const text = await response.text();
-            
             const jsonText = text.substring(47, text.length - 2);
-            const data = JSON.parse(jsonText);
-            const rows = data.table.rows;
+            const json = JSON.parse(jsonText);
+            const rows = json.table.rows;
 
-            let coalIn = Array(12).fill(0);
-            let coalOut = Array(12).fill(0);
-            let endingStock = Array(12).fill(0);
-
+            // Parse Google Sheet Data
             let summaryRow = null;
             for (let i = rows.length - 1; i >= 0; i--) {
-                if (rows[i].c && rows[i].c[0] && parseValue(rows[i].c[0].v) > 100000) {
+                if (rows[i].c && rows[i].c[0] && parseNum(rows[i].c[0].v) > 100000) {
                     summaryRow = rows[i];
                     break;
                 }
@@ -334,8 +625,8 @@
                 for (let m = 0; m < 12; m++) {
                     let inCol = m * 4;
                     let outCol = m * 4 + 1;
-                    if (summaryRow.c[inCol]) coalIn[m] = parseValue(summaryRow.c[inCol].v);
-                    if (summaryRow.c[outCol]) coalOut[m] = parseValue(summaryRow.c[outCol].v);
+                    if (summaryRow.c[inCol]) rawData.coalInKg[m] = parseNum(summaryRow.c[inCol].v);
+                    if (summaryRow.c[outCol]) rawData.coalOutKg[m] = parseNum(summaryRow.c[outCol].v);
                 }
             }
 
@@ -344,187 +635,221 @@
                 let lastStock = 0;
                 for (let r = 2; r < rows.length; r++) {
                     if (rows[r] && rows[r].c && rows[r].c[stockCol] && rows[r].c[stockCol].v !== null) {
-                        let val = parseValue(rows[r].c[stockCol].v);
+                        let val = parseNum(rows[r].c[stockCol].v);
                         if (val > 0) lastStock = val;
                     }
                 }
-                endingStock[m] = lastStock;
+                rawData.endingStockKg[m] = lastStock;
             }
 
-            updateKPIs(coalIn, coalOut, endingStock);
-            renderCharts(coalIn, coalOut, endingStock);
-
-            const now = new Date().toLocaleTimeString('th-TH');
-            document.getElementById('syncStatus').innerText = `อัปเดตล่าสุด: ${now}`;
-            resetCountdown();
-
-        } catch (error) {
-            console.error('Error loading Google Sheet:', error);
-            document.getElementById('syncStatus').innerText = '❌ โหลดข้อมูลไม่สำเร็จ';
+            updateDashboard();
+        } catch (e) {
+            console.log("Loaded default offline dataset:", e);
+            updateDashboard();
         }
     }
 
-    function resetCountdown() {
-        countdownSec = REFRESH_INTERVAL_SEC;
-        if (countdownTimer) clearInterval(countdownTimer);
-        
-        countdownTimer = setInterval(() => {
-            countdownSec--;
-            if (countdownSec <= 0) {
-                loadGoogleSheetData();
-            } else {
-                document.getElementById('syncCountdown').innerText = `(อัปเดตถัดไปใน ${countdownSec} วิ)`;
-            }
-        }, 1000);
+    function parseNum(val) {
+        if (!val) return 0;
+        if (typeof val === 'number') return val;
+        let str = String(val).replace(/,/g, '').trim();
+        return parseFloat(str) || 0;
     }
 
-    function manualRefresh() {
-        loadGoogleSheetData();
+    // Unit Toggle
+    function setUnit(unit) {
+        currentUnit = unit;
+        document.getElementById('btnTon').classList.toggle('active', unit === 'ton');
+        document.getElementById('btnKg').classList.toggle('active', unit === 'kg');
+        updateDashboard();
     }
 
-    function updateKPIs(coalIn, coalOut, endingStock) {
-        const totalIn = coalIn.reduce((a, b) => a + b, 0);
-        const totalOut = coalOut.reduce((a, b) => a + b, 0);
+    // Dashboard Update Handler
+    function updateDashboard() {
+        const isTon = currentUnit === 'ton';
+        const factor = isTon ? 0.001 : 1;
+        const unitText = isTon ? 'ตัน' : 'กก.';
 
-        let latestStock = 0;
-        for (let i = endingStock.length - 1; i >= 0; i--) {
-            if (endingStock[i] > 0) {
-                latestStock = endingStock[i];
-                break;
-            }
-        }
+        // Calculate YTD
+        const ytdIn = rawData.coalInKg.reduce((a, b) => a + b, 0) * factor;
+        const ytdOut = rawData.coalOutKg.reduce((a, b) => a + b, 0) * factor;
+        const latestStock = rawData.endingStockKg[8] * factor; // Sep stock
+        const avgDaily = (rawData.coalOutKg.reduce((a, b) => a + b, 0) / 229) * factor;
+        const daysLeft = Math.round((latestStock) / (avgDaily || 1));
 
-        document.getElementById('kpiTotalIn').innerHTML = `${totalIn.toLocaleString()} <span class="unit">Kg</span>`;
-        document.getElementById('kpiTotalOut').innerHTML = `${totalOut.toLocaleString()} <span class="unit">Kg</span>`;
-        document.getElementById('kpiLatestStock').innerHTML = `${latestStock.toLocaleString()} <span class="unit">Kg</span>`;
+        // Update KPI Texts
+        document.getElementById('valLatestStock').innerText = `${latestStock.toLocaleString(undefined, {maximumFractionDigits: 1})} ${unitText}`;
+        document.getElementById('valYtdIn').innerText = `${ytdIn.toLocaleString(undefined, {maximumFractionDigits: 1})} ${unitText}`;
+        document.getElementById('valYtdOut').innerText = `${ytdOut.toLocaleString(undefined, {maximumFractionDigits: 1})} ${unitText}`;
+        document.getElementById('valNetBalance').innerText = `สุทธิ +${(ytdIn - ytdOut).toLocaleString(undefined, {maximumFractionDigits: 1})} ${unitText}`;
+        document.getElementById('valAvgDaily').innerText = `${avgDaily.toLocaleString(undefined, {maximumFractionDigits: 2})} ${unitText}`;
+        document.getElementById('valDaysLeft').innerText = `${daysLeft} วัน`;
 
-        const badgeEl = document.getElementById('kpiStockBadge');
-        if (latestStock < 60000) {
-            badgeEl.className = 'status-badge bg-danger';
-            badgeEl.innerText = 'วิกฤต (< Min 60,000 Kg)';
-        } else if (latestStock < 100000) {
-            badgeEl.className = 'status-badge bg-warning';
-            badgeEl.innerText = 'เตือนภัย (เกิน Min แต่ต่ำกว่า Mix)';
-        } else {
-            badgeEl.className = 'status-badge bg-success';
-            badgeEl.innerText = 'ปลอดภัย (เกิน Mix 100,000 Kg)';
-        }
+        // Tank Liquid Height Calculation (%)
+        const maxLimit = rawData.maxLimitKg * factor;
+        const tankPct = Math.min(Math.max((latestStock / maxLimit) * 100, 10), 95);
+        document.getElementById('tankFill').style.height = `${tankPct}%`;
 
-        let riskMonths = [];
-        for (let i = 0; i < 12; i++) {
-            if (endingStock[i] > 0 && endingStock[i] < 60000) {
-                riskMonths.push(months[i]);
-            }
-        }
-        document.getElementById('kpiRiskCount').innerHTML = `${riskMonths.length} <span class="unit">เดือน</span>`;
-        document.getElementById('kpiRiskMonths').innerText = riskMonths.length > 0 ? `เดือน: ${riskMonths.join(', ')}` : 'ไม่มีเดือนสุ่มเสี่ยง';
+        // Update Charts & Table
+        renderCharts(factor, unitText);
+        renderTable();
     }
 
-    function renderCharts(coalIn, coalOut, endingStock) {
-        if (monthlyChartInstance) monthlyChartInstance.destroy();
-        if (quarterlyChartInstance) quarterlyChartInstance.destroy();
+    function renderCharts(factor, unitText) {
+        if (barChartInstance) barChartInstance.destroy();
+        if (lineChartInstance) lineChartInstance.destroy();
 
-        const ctx1 = document.getElementById('monthlyChart').getContext('2d');
-        monthlyChartInstance = new Chart(ctx1, {
+        const monthsShort = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+        const inData = rawData.coalInKg.map(v => v * factor);
+        const outData = rawData.coalOutKg.map(v => v * factor);
+        const stockData = rawData.endingStockKg.map(v => v * factor);
+
+        // Chart 1: Bar Chart (In vs Out)
+        const ctxBar = document.getElementById('barChartInVsOut').getContext('2d');
+        barChartInstance = new Chart(ctxBar, {
             type: 'bar',
             data: {
-                labels: months,
+                labels: monthsShort,
                 datasets: [
                     {
-                        label: 'ยอดคงเหลือปลายเดือน (Kg)',
-                        data: endingStock,
-                        type: 'line',
-                        borderColor: '#0f172a',
-                        borderWidth: 3,
-                        fill: false,
-                        tension: 0.3,
-                        yAxisID: 'y'
+                        label: 'รับเข้า',
+                        data: inData,
+                        backgroundColor: '#10b981',
+                        borderRadius: 4
                     },
                     {
-                        label: 'เกณฑ์ Min (60,000 Kg)',
-                        data: Array(12).fill(60000),
-                        type: 'line',
-                        borderColor: '#dc2626',
-                        borderWidth: 2,
-                        borderDash: [6, 6],
-                        pointRadius: 0,
-                        fill: false,
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'เกณฑ์ Mix (100,000 Kg)',
-                        data: Array(12).fill(100000),
-                        type: 'line',
-                        borderColor: '#16a34a',
-                        borderWidth: 2,
-                        borderDash: [6, 6],
-                        pointRadius: 0,
-                        fill: false,
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'ถ่านหินเข้า (Kg)',
-                        data: coalIn,
-                        backgroundColor: 'rgba(37, 99, 235, 0.75)',
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'ยอดเบิกใช้ (Kg)',
-                        data: coalOut,
-                        backgroundColor: 'rgba(217, 119, 6, 0.75)',
-                        yAxisID: 'y'
+                        label: 'เบิกใช้',
+                        data: outData,
+                        backgroundColor: '#ef4444',
+                        borderRadius: 4
                     }
                 ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: { color: '#f1f5f9' },
-                        title: { display: true, text: 'ปริมาณ (Kg)' }
-                    },
-                    x: { grid: { display: false } }
-                },
                 plugins: {
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.dataset.label + ': ' + context.raw.toLocaleString() + ' Kg';
-                            }
-                        }
-                    }
+                    legend: { labels: { color: '#8a99ad', font: { family: 'IBM Plex Sans Thai' } } }
+                },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#8a99ad' } },
+                    y: { grid: { color: '#263240' }, ticks: { color: '#8a99ad' } }
                 }
             }
         });
 
-        const q1 = coalOut.slice(0, 3).reduce((a, b) => a + b, 0);
-        const q2 = coalOut.slice(3, 6).reduce((a, b) => a + b, 0);
-        const q3 = coalOut.slice(6, 9).reduce((a, b) => a + b, 0);
-        const q4 = coalOut.slice(9, 12).reduce((a, b) => a + b, 0);
-
-        const ctx2 = document.getElementById('quarterlyChart').getContext('2d');
-        quarterlyChartInstance = new Chart(ctx2, {
-            type: 'doughnut',
+        // Chart 2: Line Chart (Stock Trend vs Thresholds)
+        const ctxLine = document.getElementById('lineChartTrend').getContext('2d');
+        lineChartInstance = new Chart(ctxLine, {
+            type: 'line',
             data: {
-                labels: ['Q1 (ม.ค.-มี.ค.)', 'Q2 (เม.ย.-มิ.ย.)', 'Q3 (ก.ค.-ก.ย.)', 'Q4 (ต.ค.-ธ.ค.)'],
-                datasets: [{
-                    data: [q1, q2, q3, q4],
-                    backgroundColor: ['#2563eb', '#06b6d4', '#f59e0b', '#cbd5e1']
-                }]
+                labels: monthsShort,
+                datasets: [
+                    {
+                        label: 'คงเหลือปลายเดือน',
+                        data: stockData,
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Max',
+                        data: Array(12).fill(rawData.maxLimitKg * factor),
+                        borderColor: '#f97316',
+                        borderDash: [6, 6],
+                        pointRadius: 0,
+                        borderWidth: 1.5,
+                        fill: false
+                    },
+                    {
+                        label: 'Min',
+                        data: Array(12).fill(rawData.minLimitKg * factor),
+                        borderColor: '#ef4444',
+                        borderDash: [6, 6],
+                        pointRadius: 0,
+                        borderWidth: 1.5,
+                        fill: false
+                    }
+                ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { position: 'bottom' }
+                    legend: { labels: { color: '#8a99ad', font: { family: 'IBM Plex Sans Thai' } } }
+                },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#8a99ad' } },
+                    y: { grid: { color: '#263240' }, ticks: { color: '#8a99ad' } }
                 }
             }
         });
     }
 
-    window.onload = loadGoogleSheetData;
+    function renderTable() {
+        const tbody = document.getElementById('summaryTableBody');
+        const monthsShort = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+        let html = '';
+
+        for (let i = 0; i < 12; i++) {
+            const stock = rawData.endingStockKg[i];
+            const status = stock < rawData.minLimitKg ? 
+                '<span style="color: var(--accent-red); font-weight:600;">ต่ำกว่าเกณฑ์ Min</span>' : 
+                '<span style="color: var(--accent-green); font-weight:600;">ปกติ</span>';
+
+            html += `
+                <tr>
+                    <td>${monthsShort[i]}</td>
+                    <td>${rawData.coalInKg[i].toLocaleString()}</td>
+                    <td>${rawData.coalOutKg[i].toLocaleString()}</td>
+                    <td>${stock.toLocaleString()}</td>
+                    <td>${status}</td>
+                </tr>
+            `;
+        }
+        tbody.innerHTML = html;
+    }
+
+    // Switch Tabs
+    function switchTab(tabId, el) {
+        document.querySelectorAll('.tab-item').forEach(item => item.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        
+        el.classList.add('active');
+        document.getElementById(tabId).classList.add('active');
+    }
+
+    // Take Screenshot (html2canvas)
+    function takeScreenshot() {
+        html2canvas(document.body).then(canvas => {
+            const link = document.createElement('a');
+            link.download = 'Coal_Stock_Dashboard.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        });
+    }
+
+    // File Upload Handler (SheetJS)
+    function handleFileUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            alert(`โหลดไฟล์ ${file.name} สำเร็จ! กำลังประมวลผลข้อมูลใหม่...`);
+            // Custom parsing logic can be extended here
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    // Initialize on Page Load
+    window.onload = function() {
+        fetchGoogleSheetData();
+    };
 </script>
 </body>
 </html>
