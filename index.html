@@ -3,237 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coal Stock Dashboard | สต๊อกถ่านหิน</title>
+    <title>Coal Operations & Cost Dashboard | ระบบบริหารจัดการสต๊อกและวิเคราะห์ความคุ้มค่าถ่านหิน</title>
+    
     <!-- Google Fonts: IBM Plex Sans Thai -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- External Libraries -->
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0f141c',
+                        cardBg: '#18202a',
+                        cardBorder: '#263240',
+                        accentOrange: '#f97316',
+                        accentOrangeHover: '#ea580c',
+                        accentGreen: '#10b981',
+                        accentRed: '#ef4444',
+                        accentAmber: '#f59e0b',
+                        accentBlue: '#3b82f6',
+                        badgeBg: '#1c2834'
+                    },
+                    fontFamily: {
+                        sans: ['IBM Plex Sans Thai', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- External Charting and Screenshot Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
     <style>
-        :root {
-            --bg-dark: #0f141c;
-            --card-bg: #18202a;
-            --card-border: #263240;
-            --text-main: #f8fafc;
-            --text-muted: #8a99ad;
-            --primary-orange: #f97316;
-            --primary-orange-hover: #ea580c;
-            --accent-green: #10b981;
-            --accent-red: #ef4444;
-            --accent-amber: #f59e0b;
-            --badge-bg: #1c2834;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'IBM Plex Sans Thai', sans-serif;
-        }
-
-        body {
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            padding: 24px;
-            min-height: 100vh;
-        }
-
-        .container {
-            max-width: 1440px;
-            margin: 0 auto;
-        }
-
-        /* Top Header */
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-            gap: 16px;
-        }
-
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .header-icon {
-            width: 48px;
-            height: 48px;
-            background: linear-gradient(135deg, #ea580c, #9a3412);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);
-        }
-
-        .header-title h1 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #ffffff;
-            line-height: 1.2;
-        }
-
-        .header-title p {
-            font-size: 0.875rem;
-            color: var(--text-muted);
-            margin-top: 2px;
-        }
-
-        .header-right {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        .source-badge {
-            background-color: var(--badge-bg);
-            border: 1px solid var(--card-border);
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 0.8125rem;
-            color: var(--text-muted);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .status-dot {
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
             width: 8px;
             height: 8px;
-            background-color: var(--accent-green);
-            border-radius: 50%;
-            box-shadow: 0 0 8px var(--accent-green);
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f141c;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #263240;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #f97316;
+        }
+        
+        input[type=range] {
+            accent-color: #f97316;
         }
 
-        /* Unit Switcher */
-        .unit-toggle {
-            background-color: var(--badge-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 8px;
-            padding: 3px;
-            display: flex;
-            gap: 2px;
-        }
-
-        .unit-btn {
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            padding: 6px 16px;
-            border-radius: 6px;
-            font-size: 0.875rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .unit-btn.active {
-            background-color: var(--primary-orange);
-            color: #ffffff;
-        }
-
-        /* Action Buttons */
-        .btn-action {
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 0.875rem;
-            font-weight: 600;
-            border: none;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            transition: all 0.2s;
-        }
-
-        .btn-dark {
-            background-color: #212c3a;
-            color: var(--text-main);
-            border: 1px solid var(--card-border);
-        }
-
-        .btn-dark:hover {
-            background-color: #2a374a;
-        }
-
-        /* KPI Cards Grid */
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-
-        @media (max-width: 1200px) {
-            .kpi-grid {
-                grid-template-columns: repeat(3, 1fr);
-            }
-        }
-
-        @media (max-width: 768px) {
-            .kpi-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .kpi-card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 12px;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            min-height: 160px;
-            position: relative;
-        }
-
-        .kpi-header {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.875rem;
-            color: var(--text-muted);
-            font-weight: 500;
-        }
-
-        .dot-icon {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            display: inline-block;
-        }
-
-        .kpi-value {
-            font-size: 1.875rem;
-            font-weight: 700;
-            color: #ffffff;
-            margin: 12px 0 4px 0;
-        }
-
-        .kpi-subtext {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-        }
-
-        /* Tank Gauge Special Card */
-        .tank-card-body {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-top: 8px;
-        }
-
+        /* Stock Tank Liquid Graphic Styling */
         .tank-graphic {
             width: 95px;
             height: 80px;
@@ -269,145 +97,14 @@
 
         .tank-line-max {
             top: 20%;
-            border-color: var(--primary-orange);
+            border-color: #f97316;
             color: #fdba74;
         }
 
         .tank-line-min {
             top: 60%;
-            border-color: var(--accent-red);
+            border-color: #ef4444;
             color: #fca5a5;
-        }
-
-        .status-pill {
-            display: inline-block;
-            padding: 4px 10px;
-            background-color: rgba(249, 115, 22, 0.15);
-            color: #fb923c;
-            border: 1px solid rgba(249, 115, 22, 0.3);
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            margin-top: 6px;
-        }
-
-        /* Navigation Tabs */
-        .nav-tabs {
-            display: flex;
-            gap: 24px;
-            border-bottom: 1px solid var(--card-border);
-            margin-bottom: 24px;
-        }
-
-        .tab-item {
-            padding: 12px 4px;
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: var(--text-muted);
-            cursor: pointer;
-            position: relative;
-            transition: color 0.2s;
-        }
-
-        .tab-item:hover {
-            color: var(--text-main);
-        }
-
-        .tab-item.active {
-            color: #ffffff;
-        }
-
-        .tab-item.active::after {
-            content: '';
-            position: absolute;
-            bottom: -1px;
-            left: 0;
-            width: 100%;
-            height: 3px;
-            background-color: var(--primary-orange);
-            border-radius: 3px 3px 0 0;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        /* Charts Section */
-        .charts-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 24px;
-        }
-
-        @media (max-width: 1024px) {
-            .charts-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .chart-card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 12px;
-            padding: 20px;
-        }
-
-        .chart-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 16px;
-        }
-
-        .chart-title-box h3 {
-            font-size: 1rem;
-            font-weight: 600;
-            color: #ffffff;
-        }
-
-        .chart-title-box p {
-            font-size: 0.78125rem;
-            color: var(--text-muted);
-            margin-top: 2px;
-        }
-
-        .chart-container {
-            position: relative;
-            height: 320px;
-            width: 100%;
-        }
-
-        /* Table Styles */
-        .table-card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 12px;
-            padding: 20px;
-            margin-top: 20px;
-        }
-
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 16px;
-        }
-
-        .data-table th, .data-table td {
-            padding: 12px 16px;
-            text-align: left;
-            border-bottom: 1px solid var(--card-border);
-            font-size: 0.875rem;
-        }
-
-        .data-table th {
-            background-color: #121822;
-            color: var(--text-muted);
-            font-weight: 600;
         }
 
         .bar-cell {
@@ -429,256 +126,962 @@
             height: 100%;
             border-radius: 4px;
         }
-
-        /* Daily Controls & Cards */
-        .daily-filter-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            gap: 16px;
-        }
-
-        .select-month {
-            background-color: #121822;
-            color: #ffffff;
-            border: 1px solid var(--card-border);
-            padding: 10px 16px;
-            border-radius: 8px;
-            font-size: 0.95rem;
-            font-weight: 600;
-            cursor: pointer;
-            outline: none;
-        }
-
-        .daily-kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 16px;
-            margin-bottom: 20px;
-        }
-
-        @media (max-width: 900px) {
-            .daily-kpi-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
     </style>
 </head>
-<body>
+<body class="bg-darkBg text-slate-100 p-3 md:p-6 min-h-screen font-sans leading-relaxed">
 
-<div class="container">
-    <!-- Header -->
-    <header>
-        <div class="header-left">
-            <div class="header-icon">🔥</div>
-            <div class="header-title">
-                <h1>Coal Stock Dashboard</h1>
-                <p>ระบบติดตามสต๊อกถ่านหินรายวัน/รายเดือน · ปีข้อมูล 2026</p>
+<div class="max-w-[1440px] mx-auto space-y-6" id="dashboardCaptureArea">
+
+    <!-- Integrated Master Top Header -->
+    <header class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-cardBg border border-cardBorder p-4 md:p-5 rounded-2xl shadow-xl">
+        
+        <!-- Title & Icon -->
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-orange-500 to-amber-700 rounded-xl flex items-center justify-center text-2xl md:text-3xl shadow-lg shadow-orange-500/20">
+                🔥
+            </div>
+            <div>
+                <h1 class="text-lg md:text-2xl font-bold text-white tracking-tight">
+                    ระบบบริหารจัดการถ่านหินแบบครบวงจร (Coal Operations & Cost Dashboard)
+                </h1>
+                <p class="text-xs md:text-sm text-slate-400 mt-0.5">
+                    วิเคราะห์ความคุ้มค่าด้านพลังงานเตาบอยเลอร์ 4 ตัน & ติดตามสต๊อกถ่านหินรายวัน/รายเดือน
+                </p>
             </div>
         </div>
-        <div class="header-right">
-            <div class="source-badge">
-                <span class="status-dot"></span>
-                <span>ข้อมูลสดจาก stock_coal</span>
+
+        <!-- Global Control Bar: Main View Tabs & Actions -->
+        <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-between lg:justify-end">
+            
+            <!-- Main View Switcher Navigation Buttons -->
+            <div class="bg-darkBg/80 p-1.5 rounded-xl border border-cardBorder flex gap-1 w-full sm:w-auto">
+                <button id="mainBtnCost" onclick="switchMainTab('cost')" 
+                        class="flex-1 sm:flex-none px-4 py-2 rounded-lg font-bold text-xs md:text-sm transition flex items-center justify-center gap-2 bg-accentOrange text-white shadow-md">
+                    📊 วิเคราะห์ความคุ้มค่า (Cost & Eff)
+                </button>
+                <button id="mainBtnStock" onclick="switchMainTab('stock')" 
+                        class="flex-1 sm:flex-none px-4 py-2 rounded-lg font-bold text-xs md:text-sm transition flex items-center justify-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800">
+                    📦 สต๊อกถ่านหิน (Stock System)
+                </button>
             </div>
-            <div class="unit-toggle">
-                <button class="unit-btn active" id="btnTon" onclick="setUnit('ton')">ตัน</button>
-                <button class="unit-btn" id="btnKg" onclick="setUnit('kg')">กก.</button>
+
+            <div class="flex items-center gap-2">
+                <!-- Unit Switcher (Visible when Stock Tab is Active) -->
+                <div id="stockUnitToggle" class="hidden bg-darkBg border border-cardBorder rounded-xl p-1 flex gap-1">
+                    <button id="btnTon" onclick="setUnit('ton')" class="px-3 py-1 text-xs font-bold rounded-lg bg-accentOrange text-white transition">ตัน</button>
+                    <button id="btnKg" onclick="setUnit('kg')" class="px-3 py-1 text-xs font-bold rounded-lg text-slate-400 hover:text-white transition">กก.</button>
+                </div>
+
+                <!-- Screenshot Button -->
+                <button onclick="takeScreenshot()" class="bg-slate-800 hover:bg-slate-700 text-white text-xs md:text-sm font-semibold px-3.5 py-2 rounded-xl border border-cardBorder flex items-center gap-2 transition hover:border-orange-500/50">
+                    📷 ถ่ายภาพ
+                </button>
             </div>
-            <button class="btn-action btn-dark" onclick="takeScreenshot()">
-                <span>📷</span> ถ่ายภาพ
-            </button>
         </div>
     </header>
 
-    <!-- KPI Cards -->
-    <div class="kpi-grid">
-        <!-- Card 1: สต๊อกล่าสุด -->
-        <div class="kpi-card">
-            <div class="kpi-header">สต๊อกล่าสุด</div>
-            <div class="tank-card-body">
-                <div class="tank-graphic">
-                    <div class="tank-line-max" id="lblTankMax">MAX: 100 ตัน</div>
-                    <div class="tank-line-min" id="lblTankMin">MIN: 60 ตัน</div>
-                    <div class="tank-liquid" id="tankFill" style="height: 65%;"></div>
+    <!-- ==================================================================== -->
+    <!-- VIEW 1: COAL COST & EFFICIENCY DASHBOARD                             -->
+    <!-- ==================================================================== -->
+    <main id="viewCostEfficiency" class="space-y-6">
+
+        <!-- Executive Summary Banner (Dynamic Winner Recommendation) -->
+        <div id="winnerBanner" class="bg-gradient-to-r from-emerald-950/80 via-cardBg to-cardBg border border-emerald-500/40 p-5 rounded-2xl shadow-xl flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-2xl text-emerald-400 shrink-0">
+                    🏆
                 </div>
                 <div>
-                    <div class="kpi-value" id="valLatestStock" style="font-size: 1.5rem;">86.4 ตัน</div>
-                    <span class="status-pill" id="lblStockStatus">อยู่ในกรอบควบคุม</span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs uppercase font-bold tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-md border border-emerald-500/20">เกรดที่คุ้มค่าที่สุด (Most Cost-Effective)</span>
+                        <span id="winnerText" class="text-lg font-bold text-white">AR3800</span>
+                    </div>
+                    <p id="winnerDesc" class="text-sm text-slate-300 mt-1">
+                        ถ่านหินเกรด <strong class="text-orange-400">AR3800</strong> ให้ต้นทุนการผลิตไอน้ำต่ำสุดเฉลี่ยอยู่ที่ <strong id="winnerCostTon" class="text-emerald-400 font-bold">466.8 บาท/ตันไอน้ำ</strong> ประหยัดงบได้ถึง <strong id="winnerSaving" class="text-emerald-400 font-bold">23.5%</strong> เมื่อเทียบกับเกรด AR4200 (ราคา 3.40 บาท/กก. ในชีต)
+                    </p>
+                </div>
+            </div>
+            <div class="text-right flex-shrink-0 bg-slate-900/60 p-3 px-5 rounded-xl border border-slate-700/50 w-full md:w-auto">
+                <div class="text-xs text-slate-400">ส่วนต่างราคาเทียบความร้อน</div>
+                <div class="text-xs md:text-sm font-bold text-emerald-400" id="winnerDiffStat">AR4200 แพงขึ้น +39.9% แต่ความร้อนเพิ่มเพียง +10.5%</div>
+            </div>
+        </div>
+
+        <!-- Boiler Operating Parameters Control Panel -->
+        <div class="bg-cardBg border border-cardBorder p-5 rounded-2xl space-y-4">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-cardBorder pb-3 gap-2">
+                <h2 class="text-base md:text-lg font-bold text-white flex items-center gap-2">
+                    ⚙️ พารามิเตอร์การทำงานของเตาบอยเลอร์ (Boiler Operating Parameters)
+                </h2>
+                <span class="text-xs text-slate-400">ปรับเปลี่ยนค่าเพื่อคำนวณใหม่แบบเรียลไทม์</span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                <!-- Capacity -->
+                <div class="bg-darkBg/60 p-3.5 rounded-xl border border-cardBorder">
+                    <label class="text-slate-400 text-xs font-medium block mb-1">พิกัดขนาดเตาบอยเลอร์ (Capacity)</label>
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-white text-base" id="lblCapacity">4.0 ตัน/ชม.</span>
+                        <span class="text-xs text-slate-500">(4,000 kg/hr)</span>
+                    </div>
+                    <input type="range" id="paramCapacity" min="1" max="10" step="0.5" value="4" class="w-full h-1.5 rounded-lg cursor-pointer" oninput="calculateAll()">
+                </div>
+
+                <!-- Boiler Operating Pressure -->
+                <div class="bg-darkBg/60 p-3.5 rounded-xl border border-cardBorder">
+                    <label class="text-slate-400 text-xs font-medium block mb-1">ความดันไอน้ำใช้งาน (Steam Pressure)</label>
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-white text-base" id="lblPressure">8.0 bar.g</span>
+                        <span class="text-xs text-slate-500">(Enthalpy ~660 kcal/kg)</span>
+                    </div>
+                    <input type="range" id="paramPressure" min="4" max="20" step="1" value="8" class="w-full h-1.5 rounded-lg cursor-pointer" oninput="calculateAll()">
+                </div>
+
+                <!-- Feedwater Temp -->
+                <div class="bg-darkBg/60 p-3.5 rounded-xl border border-cardBorder">
+                    <label class="text-slate-400 text-xs font-medium block mb-1">อุณหภูมิน้ำป้อน (Feedwater Temp)</label>
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-white text-base" id="lblFeedwater">85 °C</span>
+                        <span class="text-xs text-slate-500">(Enthalpy ~85 kcal/kg)</span>
+                    </div>
+                    <input type="range" id="paramFeedwater" min="30" max="105" step="5" value="85" class="w-full h-1.5 rounded-lg cursor-pointer" oninput="calculateAll()">
+                </div>
+
+                <!-- Operating Hours/Day -->
+                <div class="bg-darkBg/60 p-3.5 rounded-xl border border-cardBorder">
+                    <label class="text-slate-400 text-xs font-medium block mb-1">ชั่วโมงเดินเครื่องต่อวัน (Hours/Day)</label>
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-white text-base" id="lblHours">24 ชม./วัน</span>
+                        <span class="text-xs text-slate-500">(30 วัน/เดือน)</span>
+                    </div>
+                    <input type="range" id="paramHours" min="4" max="24" step="1" value="24" class="w-full h-1.5 rounded-lg cursor-pointer" oninput="calculateAll()">
                 </div>
             </div>
         </div>
 
-        <!-- Card 2: รับเข้าสะสม (YTD) -->
-        <div class="kpi-card">
-            <div class="kpi-header">
-                <span class="dot-icon" style="background-color: var(--accent-green);"></span>
-                <span>รับเข้าสะสม (YTD)</span>
+        <!-- Main Comparison Matrix & Grade Input Table -->
+        <div class="bg-cardBg border border-cardBorder p-5 rounded-2xl space-y-4">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <div>
+                    <h2 class="text-base md:text-lg font-bold text-white flex items-center gap-2">
+                        📊 ตารางเปรียบเทียบเกรดถ่านหิน (Coal Grade Parameter Matrix)
+                    </h2>
+                    <p class="text-xs text-slate-400">คุณสามารถปรับเปลี่ยนราคาถ่านหิน ประสิทธิภาพเตา และ %ขี้เถ้า เพื่อจำลองสถานการณ์จริงได้</p>
+                </div>
+                <button onclick="resetDefaults()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg border border-cardBorder transition">
+                    🔄 คืนค่าเริ่มต้นจากชีต
+                </button>
             </div>
-            <div class="kpi-value" id="valYtdIn">4,644.1 ตัน</div>
-            <div class="kpi-subtext">สะสมถึงเดือนกันยายน</div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm border-collapse min-w-[700px]">
+                    <thead>
+                        <tr class="bg-darkBg text-slate-400 text-xs uppercase tracking-wider border-b border-cardBorder">
+                            <th class="p-3">เกรดถ่านหิน (Grade)</th>
+                            <th class="p-3">ค่าความร้อน (AR kcal/kg)</th>
+                            <th class="p-3">ราคาถ่านหิน (บาท/กก.)</th>
+                            <th class="p-3">ประสิทธิภาพเตา (%)</th>
+                            <th class="p-3">% ขี้เถ้า (Ash %)</th>
+                            <th class="p-3">พลังงานใช้งานจริง (kcal/kg)</th>
+                            <th class="p-3">ต้นทุนพลังงาน (บาท/Gcal)</th>
+                            <th class="p-3">สถานะความคุ้มทุน</th>
+                        </tr>
+                    </thead>
+                    <tbody id="coalTableBody" class="divide-y divide-cardBorder">
+                        <!-- Dynamic Rows populated by JS -->
+                    </tbody>
+                </table>
+            </div>
         </div>
 
-        <!-- Card 3: เบิกใช้สะสม (YTD) -->
-        <div class="kpi-card">
-            <div class="kpi-header">
-                <span class="dot-icon" style="background-color: var(--accent-red);"></span>
-                <span>เบิกใช้สะสม (YTD)</span>
+        <!-- KPI Summary Grid Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-cardBg border border-cardBorder p-4 rounded-2xl relative overflow-hidden">
+                <div class="text-xs font-medium text-slate-400">ต้นทุนค่าไอน้ำ (Cost / Ton Steam)</div>
+                <div class="text-2xl font-bold text-white mt-2" id="kpiBestSteamCost">-</div>
+                <div class="text-xs text-emerald-400 mt-1" id="kpiBestSteamSub">ประหยัดสูงสุด: AR3800</div>
+                <div class="absolute -right-2 -bottom-2 text-6xl opacity-5">💨</div>
             </div>
-            <div class="kpi-value" id="valYtdOut">4,603.4 ตัน</div>
-            <div class="kpi-subtext" id="valNetBalance">สุทธิ +40.7 ตัน</div>
+
+            <div class="bg-cardBg border border-cardBorder p-4 rounded-2xl relative overflow-hidden">
+                <div class="text-xs font-medium text-slate-400">ปริมาณการใช้ถ่านหินต่อวัน (Ton/Day)</div>
+                <div class="text-2xl font-bold text-orange-400 mt-2" id="kpiDailyCoalUse">-</div>
+                <div class="text-xs text-slate-400 mt-1" id="kpiDailyCoalSub">คิดที่ภาระการทำงาน 100%</div>
+                <div class="absolute -right-2 -bottom-2 text-6xl opacity-5">⚖️</div>
+            </div>
+
+            <div class="bg-cardBg border border-cardBorder p-4 rounded-2xl relative overflow-hidden">
+                <div class="text-xs font-medium text-slate-400">งบประมาณค่าถ่านหินต่อเดือน (THB/Month)</div>
+                <div class="text-2xl font-bold text-amber-400 mt-2" id="kpiMonthlyCost">-</div>
+                <div class="text-xs text-slate-400 mt-1" id="kpiMonthlySub">คำนวณที่ 30 วัน/เดือน</div>
+                <div class="absolute -right-2 -bottom-2 text-6xl opacity-5">💰</div>
+            </div>
+
+            <div class="bg-cardBg border border-cardBorder p-4 rounded-2xl relative overflow-hidden">
+                <div class="text-xs font-medium text-slate-400">ปริมาณขี้เถ้าที่เก็บจริงต่อวัน (Collected Ash)</div>
+                <div class="text-2xl font-bold text-slate-300 mt-2" id="kpiDailyAsh">-</div>
+                <div class="text-xs text-slate-400 mt-1" id="kpiDailyAshSub">ค่าปฏิบัติการจากหน้างาน</div>
+                <div class="absolute -right-2 -bottom-2 text-6xl opacity-5">🧹</div>
+            </div>
         </div>
 
-        <!-- Card 4: อัตราใช้เฉลี่ย/วัน -->
-        <div class="kpi-card">
-            <div class="kpi-header">
-                <span class="dot-icon" style="background-color: var(--primary-orange);"></span>
-                <span>อัตราใช้เฉลี่ย/วัน</span>
+        <!-- Interactive Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Chart 1: Cost per Ton Steam -->
+            <div class="bg-cardBg border border-cardBorder p-5 rounded-2xl space-y-3">
+                <div>
+                    <h3 class="font-bold text-white text-base">เปรียบเทียบต้นทุนผลิตไอน้ำ 1 ตัน (THB / Ton Steam)</h3>
+                    <p class="text-xs text-slate-400">ยิ่งต่ำ ยิ่งประหยัดและคุ้มค่ามากที่สุด</p>
+                </div>
+                <div class="h-64 md:h-72">
+                    <canvas id="chartSteamCost"></canvas>
+                </div>
             </div>
-            <div class="kpi-value" id="valAvgDaily">20.10 ตัน</div>
-            <div class="kpi-subtext">คำนวณจาก 229 วันที่มีข้อมูลจริง</div>
+
+            <!-- Chart 2: Daily Coal Usage vs Heat Efficiency -->
+            <div class="bg-cardBg border border-cardBorder p-5 rounded-2xl space-y-3">
+                <div>
+                    <h3 class="font-bold text-white text-base">ปริมาณถ่านหินที่ต้องใช้ต่อวัน vs ค่าความร้อนจริง</h3>
+                    <p class="text-xs text-slate-400">เปรียบเทียบปริมาณวัตถุดิบที่ต้องขนถ่ายและจัดเก็บ</p>
+                </div>
+                <div class="h-64 md:h-72">
+                    <canvas id="chartCoalUsage"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 3: Monthly Total Cost Breakdown -->
+            <div class="bg-cardBg border border-cardBorder p-5 rounded-2xl space-y-3">
+                <div>
+                    <h3 class="font-bold text-white text-base">งบประมาณค่าเชื้อเพลิงรวมต่อเดือน (บาท/เดือน)</h3>
+                    <p class="text-xs text-slate-400">คิดจากเดินเครื่อง 24 ชม./วัน เต็มกำลังผลิต 4 ตัน/ชม.</p>
+                </div>
+                <div class="h-64 md:h-72">
+                    <canvas id="chartMonthlyCost"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 4: Effective Energy Cost (THB / Effective Gcal) -->
+            <div class="bg-cardBg border border-cardBorder p-5 rounded-2xl space-y-3">
+                <div>
+                    <h3 class="font-bold text-white text-base">ต้นทุนพลังงานความร้อนที่ใช้งานได้จริง (THB / Effective Gcal)</h3>
+                    <p class="text-xs text-slate-400">คำนวณจากราคาถ่านหิน ÷ (ค่าความร้อน × ประสิทธิภาพเตา)</p>
+                </div>
+                <div class="h-64 md:h-72">
+                    <canvas id="chartEnergyCost"></canvas>
+                </div>
+            </div>
         </div>
 
-        <!-- Card 5: สต๊อกใช้ได้อีก -->
-        <div class="kpi-card">
-            <div class="kpi-header">
-                <span class="dot-icon" style="background-color: var(--accent-amber);"></span>
-                <span>สต๊อกใช้ได้อีก</span>
+        <!-- Step-by-Step Calculation Methodology Section -->
+        <div class="bg-cardBg border border-cardBorder p-6 rounded-2xl space-y-6">
+            <div class="border-b border-cardBorder pb-4">
+                <h2 class="text-lg md:text-xl font-bold text-white flex items-center gap-2">
+                    📐 แสดงวิธีการคำนวณและทฤษฎีทางวิศวกรรม (Calculation Methodology & Formulas)
+                </h2>
+                <p class="text-xs md:text-sm text-slate-400 mt-1">
+                    การวิเคราะห์ความคุ้มค่าตามหลักวิศวกรรมความร้อน (Thermal Engineering) สำหรับเตาไอน้ำท่อไฟ (Fire-Tube Boiler)
+                </p>
             </div>
-            <div class="kpi-value" id="valDaysLeft" style="color: #f59e0b;">4 วัน</div>
-            <div class="kpi-subtext" id="valDaysLeftSub">คิดจากสต๊อกเดือนปัจจุบัน ÷ อัตราใช้/วัน</div>
-        </div>
-    </div>
 
-    <!-- Navigation Tabs -->
-    <div class="nav-tabs">
-        <div class="tab-item active" id="tabNavOverview" onclick="switchTab('tabOverview')">ภาพรวมรายเดือน</div>
-        <div class="tab-item" id="tabNavDaily" onclick="switchTab('tabDaily')">รายละเอียดรายวัน (Daily Breakdown)</div>
-    </div>
-
-    <!-- Tab 1: Monthly Overview -->
-    <div id="tabOverview" class="tab-content active">
-        <div class="charts-grid">
-            <div class="chart-card">
-                <div class="chart-header">
-                    <div class="chart-title-box">
-                        <h3>ถ่านหินรับเข้า vs เบิกใช้ รายเดือน</h3>
-                        <p>เปรียบเทียบปริมาณรับเข้าและเบิกใช้ในแต่ละเดือน</p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+                <!-- Step 1 -->
+                <div class="bg-darkBg/80 p-4 rounded-xl border border-cardBorder space-y-2">
+                    <div class="text-xs font-bold uppercase text-orange-400 tracking-wider">ขั้นตอนที่ 1</div>
+                    <h4 class="font-bold text-white text-base">คำนวณพลังงานความร้อนสุทธิ ($Q_{out}$)</h4>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        หาผลต่างความจุความร้อน (Enthalpy Difference) ระหว่างไอน้ำอิ่มตัวที่ความดันใช้งาน กับน้ำป้อนเข้าเตาบอยเลอร์
+                    </p>
+                    <div class="bg-cardBg p-3 rounded-lg border border-cardBorder text-xs font-mono text-emerald-300 space-y-1">
+                        <div>Q_steam = Capacity × (h_steam - h_feedwater)</div>
+                        <div class="text-slate-400">// ที่ 10 bar.g (h_steam ≈ 663 kcal/kg) & น้ำป้อน 80°C</div>
+                        <div>Δh = 663 - 80 = 583 kcal/kg ไอน้ำ</div>
+                        <div>Q_out = 4,000 × 583 = <strong class="text-amber-400">2,332,000 kcal/hr</strong></div>
                     </div>
                 </div>
-                <div class="chart-container">
-                    <canvas id="barChartInVsOut"></canvas>
-                </div>
-            </div>
 
-            <div class="chart-card">
-                <div class="chart-header">
-                    <div class="chart-title-box">
-                        <h3>แนวโน้มสต๊อกคงเหลือปลายเดือน</h3>
-                        <p>เทียบกับขอบเขตควบคุม (Max / Min)</p>
+                <!-- Step 2 -->
+                <div class="bg-darkBg/80 p-4 rounded-xl border border-cardBorder space-y-2">
+                    <div class="text-xs font-bold uppercase text-orange-400 tracking-wider">ขั้นตอนที่ 2</div>
+                    <h4 class="font-bold text-white text-base">คำนวณอัตราการสิ้นเปลือง ($M_{coal}$)</h4>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        นำค่าพลังงานที่ต้องการ ปรับด้วยค่าความร้อนของถ่านหิน ($NCV$) และประสิทธิภาพเชิงความร้อนของเตา ($\eta$)
+                    </p>
+                    <div class="bg-cardBg p-3 rounded-lg border border-cardBorder text-xs font-mono text-emerald-300 space-y-1">
+                        <div>M_coal (kg/hr) = Q_out ÷ (NCV × Boiler_Eff)</div>
+                        <div class="text-slate-400">// ตัวอย่าง AR3800 (3,800 kcal/kg, ประสิทธิภาพ 80%)</div>
+                        <div>M_coal = 2,332,000 ÷ (3,800 × 0.80)</div>
+                        <div>M_coal = <strong class="text-orange-400">767.1 kg/hr</strong> (18.41 ตัน/วัน)</div>
                     </div>
                 </div>
-                <div class="chart-container">
-                    <canvas id="lineChartTrend"></canvas>
+
+                <!-- Step 3 -->
+                <div class="bg-darkBg/80 p-4 rounded-xl border border-cardBorder space-y-2">
+                    <div class="text-xs font-bold uppercase text-orange-400 tracking-wider">ขั้นตอนที่ 3</div>
+                    <h4 class="font-bold text-white text-base">คำนวณต้นทุนต่อตันไอน้ำ</h4>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        คำนวณค่าใช้จ่ายเชื้อเพลิงจริงต่อไอน้ำ 1 ตัน เพื่อเปรียบเทียบเกรดถ่านหินว่าเกรดใดให้ต้นทุนต่ำที่สุด
+                    </p>
+                    <div class="bg-cardBg p-3 rounded-lg border border-cardBorder text-xs font-mono text-emerald-300 space-y-1">
+                        <div>Steam_Cost = (M_coal × Price/kg) ÷ Capacity</div>
+                        <div class="text-slate-400">// ตัวอย่าง AR3800 ที่ราคา 2.43 บาท/กก.</div>
+                        <div>Steam_Cost = (767.1 kg/hr × 2.43 บาท) ÷ 4 ตัน</div>
+                        <div>Steam_Cost = <strong class="text-emerald-400">466.0 บาท/ตันไอน้ำ</strong></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Technical Analysis Insights -->
+            <div class="bg-darkBg/60 border border-cardBorder p-4 rounded-xl space-y-3">
+                <h4 class="font-bold text-white text-sm flex items-center gap-2">
+                    💡 ข้อสรุปและคำแนะนำเชิงเทคนิคสำหรับวิศวกรโรงงาน (Engineering Insights)
+                </h4>
+                <ul class="text-xs text-slate-300 space-y-2 list-disc list-inside leading-relaxed">
+                    <li>
+                        <strong class="text-orange-400">สาเหตุที่ AR3800 คุ้มค่ากว่า AR4200:</strong> ถึงแม้ถ่านหินเกรด AR4200 จะให้ค่าความร้อนสูงกว่า AR3800 อยู่ 10.5% แต่ราคาตลาดสูงถึง 3.40 บาท/กก. (+39.9%) ทำให้ต้นทุนต่อพลังงานความร้อนที่ได้จริงสูงกว่าอย่างมีนัยสำคัญ
+                    </li>
+                    <li>
+                        <strong class="text-orange-400">เตาบอยเลอร์ประเภท Fire-Tube (ท่อไฟ):</strong> ถูกออกแบบมาให้รับค่าความร้อนช่วง 3,600 - 4,200 kcal/kg ได้อย่างมีประสิทธิภาพสูงสุด การใช้ถ่านเกรด AR5000 อาจทำให้ความร้อนในห้องเผาไหม้สูงเกินความจำเป็นโดยไม่คุ้มค่าเงิน
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Raw Data Sheet Snapshot Reference -->
+        <div class="bg-cardBg border border-cardBorder p-5 rounded-2xl space-y-3">
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-white text-sm md:text-base flex items-center gap-2">
+                    📋 ข้อมูลอ้างอิงจากไฟล์ชีต `Coal_Data` (ตัวอย่างรายการสั่งซื้อล่าสุด ปี 2026)
+                </h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs border-collapse font-mono min-w-[600px]">
+                    <thead>
+                        <tr class="bg-darkBg text-slate-400 uppercase tracking-wider border-b border-cardBorder">
+                            <th class="p-2.5">Timestamp</th>
+                            <th class="p-2.5">วันที่ (Date)</th>
+                            <th class="p-2.5">ผู้จัดจำหน่าย (SUP)</th>
+                            <th class="p-2.5">น้ำหนัก (KG)</th>
+                            <th class="p-2.5">ราคา (บาท/KG)</th>
+                            <th class="p-2.5">เกรด (Grade)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="coalDataBody" class="divide-y divide-cardBorder text-slate-300">
+                        <tr><td class="p-2.5 text-center text-slate-500" colspan="6">กำลังโหลดข้อมูลจาก Coal_Data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- ==================================================================== -->
+    <!-- VIEW 2: COAL STOCK MANAGEMENT DASHBOARD                             -->
+    <!-- ==================================================================== -->
+    <main id="viewStock" class="space-y-6 hidden">
+
+        <!-- KPI Cards Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <!-- Card 1: Tank Gauge -->
+            <div class="bg-cardBg border border-cardBorder p-4 rounded-2xl flex flex-col justify-between">
+                <div class="text-xs font-medium text-slate-400">สต๊อกล่าสุด (Current Stock)</div>
+                <div class="flex items-center gap-3 mt-2">
+                    <div class="tank-graphic">
+                        <div class="tank-line-max" id="lblTankMax">MAX: 100 ตัน</div>
+                        <div class="tank-line-min" id="lblTankMin">MIN: 60 ตัน</div>
+                        <div class="tank-liquid" id="tankFill" style="height: 65%;"></div>
+                    </div>
+                    <div>
+                        <div class="text-xl font-bold text-white" id="valLatestStock">86.4 ตัน</div>
+                        <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold mt-1 bg-orange-500/15 text-orange-400 border border-orange-500/30" id="lblStockStatus">อยู่ในกรอบควบคุม</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 2: YTD In -->
+            <div class="bg-cardBg border border-cardBorder p-4 rounded-2xl flex flex-col justify-between">
+                <div class="flex items-center gap-2 text-xs font-medium text-slate-400">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    <span>รับเข้าสะสม (YTD)</span>
+                </div>
+                <div class="text-2xl font-bold text-white mt-2" id="valYtdIn">4,644.1 ตัน</div>
+                <div class="text-xs text-slate-400 mt-1">สะสมถึงเดือนกันยายน</div>
+            </div>
+
+            <!-- Card 3: YTD Out -->
+            <div class="bg-cardBg border border-cardBorder p-4 rounded-2xl flex flex-col justify-between">
+                <div class="flex items-center gap-2 text-xs font-medium text-slate-400">
+                    <span class="w-2 h-2 rounded-full bg-red-500"></span>
+                    <span>เบิกใช้สะสม (YTD)</span>
+                </div>
+                <div class="text-2xl font-bold text-white mt-2" id="valYtdOut">4,603.4 ตัน</div>
+                <div class="text-xs text-emerald-400 mt-1" id="valNetBalance">สุทธิ +40.7 ตัน</div>
+            </div>
+
+            <!-- Card 4: Avg Daily Use -->
+            <div class="bg-cardBg border border-cardBorder p-4 rounded-2xl flex flex-col justify-between">
+                <div class="flex items-center gap-2 text-xs font-medium text-slate-400">
+                    <span class="w-2 h-2 rounded-full bg-orange-500"></span>
+                    <span>อัตราใช้เฉลี่ย/วัน</span>
+                </div>
+                <div class="text-2xl font-bold text-orange-400 mt-2" id="valAvgDaily">20.10 ตัน</div>
+                <div class="text-xs text-slate-400 mt-1">คำนวณจาก 229 วันที่มีข้อมูลจริง</div>
+            </div>
+
+            <!-- Card 5: Days Left -->
+            <div class="bg-cardBg border border-cardBorder p-4 rounded-2xl flex flex-col justify-between">
+                <div class="flex items-center gap-2 text-xs font-medium text-slate-400">
+                    <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                    <span>สต๊อกใช้ได้อีก</span>
+                </div>
+                <div class="text-2xl font-bold text-amber-400 mt-2" id="valDaysLeft">4 วัน</div>
+                <div class="text-xs text-slate-400 mt-1" id="valDaysLeftSub">คิดจากสต๊อกปัจจุบัน ÷ อัตราใช้/วัน</div>
+            </div>
+        </div>
+
+        <!-- Sub Navigation Tabs for Stock Dashboard -->
+        <div class="flex gap-6 border-b border-cardBorder">
+            <button id="subTabNavOverview" onclick="switchStockSubTab('subTabOverview')" 
+                    class="pb-3 text-sm font-bold border-b-2 border-accentOrange text-white transition">
+                ภาพรวมรายเดือน (Monthly Overview)
+            </button>
+            <button id="subTabNavDaily" onclick="switchStockSubTab('subTabDaily')" 
+                    class="pb-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-white transition">
+                รายละเอียดรายวัน (Daily Breakdown)
+            </button>
+        </div>
+
+        <!-- Sub Tab 1: Monthly Overview -->
+        <div id="subTabOverview" class="space-y-6">
+            <div class="bg-cardBg border border-cardBorder p-4 rounded-2xl flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+                <div>
+                    <h3 class="font-bold text-white text-sm md:text-base">🔎 ตัวกรองช่วงเวลาแนวโน้ม</h3>
+                    <p class="text-xs text-slate-400 mt-1">เลือกช่วงเดือนเพื่อเปรียบเทียบกราฟรายเดือนและแนวโน้มคงเหลือรายวัน</p>
+                </div>
+                <div class="flex flex-wrap items-end gap-3">
+                    <label class="text-xs text-slate-400">ตั้งแต่
+                        <select id="trendStartMonth" class="block mt-1 bg-darkBg border border-cardBorder text-white font-bold px-3 py-2 rounded-xl outline-none focus:border-orange-500" onchange="renderTrendCharts()">
+                            <option value="0" selected>มกราคม</option>
+                            <option value="1">กุมภาพันธ์</option><option value="2">มีนาคม</option><option value="3">เมษายน</option>
+                            <option value="4">พฤษภาคม</option><option value="5">มิถุนายน</option><option value="6">กรกฎาคม</option>
+                            <option value="7">สิงหาคม</option><option value="8">กันยายน</option><option value="9">ตุลาคม</option>
+                            <option value="10">พฤศจิกายน</option><option value="11">ธันวาคม</option>
+                        </select>
+                    </label>
+                    <span class="text-slate-500 pb-2">ถึง</span>
+                    <label class="text-xs text-slate-400">สิ้นสุด
+                        <select id="trendEndMonth" class="block mt-1 bg-darkBg border border-cardBorder text-white font-bold px-3 py-2 rounded-xl outline-none focus:border-orange-500" onchange="renderTrendCharts()">
+                            <option value="0">มกราคม</option><option value="1">กุมภาพันธ์</option><option value="2">มีนาคม</option>
+                            <option value="3">เมษายน</option><option value="4">พฤษภาคม</option><option value="5">มิถุนายน</option>
+                            <option value="6">กรกฎาคม</option><option value="7">สิงหาคม</option><option value="8" selected>กันยายน</option>
+                            <option value="9">ตุลาคม</option><option value="10">พฤศจิกายน</option><option value="11">ธันวาคม</option>
+                        </select>
+                    </label>
+                    <button onclick="resetTrendRange()" class="bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-cardBorder transition">รีเซ็ตช่วงข้อมูล</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Bar Chart: In vs Out -->
+                <div class="bg-cardBg border border-cardBorder p-5 rounded-2xl space-y-3">
+                    <div>
+                        <h3 class="font-bold text-white text-base">ถ่านหินรับเข้า vs เบิกใช้ รายเดือน</h3>
+                        <p class="text-xs text-slate-400">เปรียบเทียบปริมาณรับเข้าและเบิกใช้ในแต่ละเดือน</p>
+                    </div>
+                    <div class="h-64 md:h-72">
+                        <canvas id="barChartInVsOut"></canvas>
+                    </div>
+                </div>
+
+                <!-- Line Chart: Trend -->
+                <div class="bg-cardBg border border-cardBorder p-5 rounded-2xl space-y-3">
+                    <div>
+                        <h3 class="font-bold text-white text-base">แนวโน้มสต๊อกคงเหลือปลายเดือน</h3>
+                        <p class="text-xs text-slate-400">เทียบกับขอบเขตควบคุม (Max / Min)</p>
+                    </div>
+                    <div class="h-64 md:h-72">
+                        <canvas id="lineChartTrend"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-cardBg border border-cardBorder p-5 rounded-2xl space-y-3">
+                <div>
+                    <h3 class="font-bold text-white text-base">แนวโน้มสต๊อกคงเหลือรายวันเปรียบเทียบระหว่างเดือน</h3>
+                    <p class="text-xs text-slate-400">เปรียบเทียบวันที่ 1 ถึง 31 ของเดือนที่เลือกในตัวกรอง</p>
+                </div>
+                <div class="h-72 md:h-80">
+                    <canvas id="dailyTrendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Monthly Chart Table -->
+            <div class="bg-cardBg border border-cardBorder p-5 rounded-2xl space-y-4">
+                <div>
+                    <h3 class="font-bold text-white text-base">📊 ตารางสรุปข้อมูลสต๊อกถ่านหินรายเดือน (Chart Table)</h3>
+                    <p class="text-xs text-slate-400">แสดงรายละเอียดตัวเลขพร้อมแถบสีเปรียบเทียบแต่ละเดือน</p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm border-collapse min-w-[600px]">
+                        <thead>
+                            <tr class="bg-darkBg text-slate-400 text-xs uppercase tracking-wider border-b border-cardBorder">
+                                <th class="p-3">เดือน</th>
+                                <th class="p-3">รับเข้ารวม</th>
+                                <th class="p-3">เบิกใช้รวม</th>
+                                <th class="p-3">คงเหลือปลายเดือน</th>
+                                <th class="p-3">สถานะการควบคุม</th>
+                            </tr>
+                        </thead>
+                        <tbody id="chartTableBody" class="divide-y divide-cardBorder">
+                            <!-- Dynamic Content -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
 
-        <!-- Chart Table Section -->
-        <div class="table-card">
-            <div class="chart-title-box">
-                <h3>📊 ตารางกราฟสรุปข้อมูลสต๊อกถ่านหินรายเดือน (Chart Table)</h3>
-                <p>แสดงรายละเอียดตัวเลขพร้อมกราฟความหนาแน่นแถบสีเปรียบเทียบแต่ละเดือน</p>
+        <!-- Sub Tab 2: Daily Breakdown -->
+        <div id="subTabDaily" class="space-y-6 hidden">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-cardBg border border-cardBorder p-4 rounded-2xl">
+                <div class="flex items-center gap-3">
+                    <label class="font-bold text-sm text-slate-300">เลือกเดือนที่ต้องการดูข้อมูลรายวัน:</label>
+                    <select id="selectMonth" class="bg-darkBg border border-cardBorder text-white font-bold px-3 py-2 rounded-xl text-sm outline-none focus:border-orange-500" onchange="renderDailyView()">
+                        <option value="0">มกราคม (Jan)</option>
+                        <option value="1">กุมภาพันธ์ (Feb)</option>
+                        <option value="2">มีนาคม (Mar)</option>
+                        <option value="3">เมษายน (Apr)</option>
+                        <option value="4">พฤษภาคม (May)</option>
+                        <option value="5">มิถุนายน (Jun)</option>
+                        <option value="6">กรกฎาคม (Jul)</option>
+                        <option value="7">สิงหาคม (Aug)</option>
+                        <option value="8" selected>กันยายน (Sep)</option>
+                        <option value="9">ตุลาคม (Oct)</option>
+                        <option value="10">พฤศจิกายน (Nov)</option>
+                        <option value="11">ธันวาคม (Dec)</option>
+                    </select>
+                </div>
             </div>
 
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>เดือน</th>
-                        <th>รับเข้ารวม</th>
-                        <th>เบิกใช้รวม</th>
-                        <th>คงเหลือปลายเดือน</th>
-                        <th>สถานะการควบคุม</th>
-                    </tr>
-                </thead>
-                <tbody id="chartTableBody">
-                    <!-- Dynamic Content -->
-                </tbody>
-            </table>
+            <!-- Daily Summary KPIs -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-cardBg border border-cardBorder p-4 rounded-xl">
+                    <div class="text-xs text-slate-400 font-medium">รับเข้ารวมในเดือนนี้</div>
+                    <div class="text-xl font-bold text-emerald-400 mt-1" id="dailySumIn">-</div>
+                </div>
+                <div class="bg-cardBg border border-cardBorder p-4 rounded-xl">
+                    <div class="text-xs text-slate-400 font-medium">เบิกใช้รวมในเดือนนี้</div>
+                    <div class="text-xl font-bold text-red-400 mt-1" id="dailySumOut">-</div>
+                </div>
+                <div class="bg-cardBg border border-cardBorder p-4 rounded-xl">
+                    <div class="text-xs text-slate-400 font-medium">สต๊อกต่ำสุดของเดือน</div>
+                    <div class="text-xl font-bold text-orange-400 mt-1" id="dailyMinStock">-</div>
+                </div>
+                <div class="bg-cardBg border border-cardBorder p-4 rounded-xl">
+                    <div class="text-xs text-slate-400 font-medium">วันที่มีการใช้งานจริง</div>
+                    <div class="text-xl font-bold text-amber-400 mt-1" id="dailyActiveDays">-</div>
+                </div>
+            </div>
+
+            <!-- Daily Records Table -->
+            <div class="bg-cardBg border border-cardBorder p-5 rounded-2xl space-y-4">
+                <div>
+                    <h3 class="font-bold text-white text-base" id="dailyTableTitle">📅 ตารางบันทึกการลงถ่านหินและเบิกใช้รายวัน</h3>
+                    <p class="text-xs text-slate-400">แสดงข้อมูลวันที่ 1 ถึง 31 ของเดือนที่เลือก</p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm border-collapse min-w-[550px]">
+                        <thead>
+                            <tr class="bg-darkBg text-slate-400 text-xs uppercase tracking-wider border-b border-cardBorder">
+                                <th class="p-3">วันที่</th>
+                                <th class="p-3">ถ่านหินเข้า</th>
+                                <th class="p-3">ยอดเบิกใช้</th>
+                                <th class="p-3">คงเหลือ</th>
+                                <th class="p-3">สถานะระดับสต๊อก</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dailyTableBody" class="divide-y divide-cardBorder">
+                            <!-- Dynamic Daily Content -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
-    </div>
+    </main>
 
-    <!-- Tab 2: Daily Breakdown -->
-    <div id="tabDaily" class="tab-content">
-        <div class="daily-filter-bar">
-            <div style="display:flex; align-items:center; gap:12px;">
-                <label style="font-weight:600; color:var(--text-muted);">เลือกเดือนที่ต้องการดูข้อมูลรายวัน:</label>
-                <select id="selectMonth" class="select-month" onchange="renderDailyView()">
-                    <option value="0">มกราคม (Jan)</option>
-                    <option value="1">กุมภาพันธ์ (Feb)</option>
-                    <option value="2">มีนาคม (Mar)</option>
-                    <option value="3">เมษายน (Apr)</option>
-                    <option value="4">พฤษภาคม (May)</option>
-                    <option value="5">มิถุนายน (Jun)</option>
-                    <option value="6">กรกฎาคม (Jul)</option>
-                    <option value="7">สิงหาคม (Aug)</option>
-                    <option value="8" selected>กันยายน (Sep)</option>
-                    <option value="9">ตุลาคม (Oct)</option>
-                    <option value="10">พฤศจิกายน (Nov)</option>
-                    <option value="11">ธันวาคม (Dec)</option>
-                </select>
-            </div>
-        </div>
-
-        <!-- Daily Summary Cards -->
-        <div class="daily-kpi-grid">
-            <div class="kpi-card" style="min-height: 120px;">
-                <div class="kpi-header">รับเข้ารวมในเดือนนี้</div>
-                <div class="kpi-value" id="dailySumIn" style="font-size: 1.5rem; color: var(--accent-green);">-</div>
-            </div>
-            <div class="kpi-card" style="min-height: 120px;">
-                <div class="kpi-header">เบิกใช้นานรวมในเดือนนี้</div>
-                <div class="kpi-value" id="dailySumOut" style="font-size: 1.5rem; color: var(--accent-red);">-</div>
-            </div>
-            <div class="kpi-card" style="min-height: 120px;">
-                <div class="kpi-header">สต๊อกต่ำสุดของเดือน</div>
-                <div class="kpi-value" id="dailyMinStock" style="font-size: 1.5rem; color: var(--primary-orange);">-</div>
-            </div>
-            <div class="kpi-card" style="min-height: 120px;">
-                <div class="kpi-header">วันที่มีการใช้งานจริง</div>
-                <div class="kpi-value" id="dailyActiveDays" style="font-size: 1.5rem; color: var(--accent-amber);">-</div>
-            </div>
-        </div>
-
-        <!-- Daily Table -->
-        <div class="table-card" style="margin-top: 0;">
-            <div class="chart-title-box">
-                <h3 id="dailyTableTitle">📅 ตารางบันทึกการลงถ่านหินและเบิกใช้รายวัน</h3>
-                <p>แสดงข้อมูลวันที่ 1 ถึง 31 ของเดือนที่เลือก</p>
-            </div>
-
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>วันที่</th>
-                        <th>ถ่านหินเข้า</th>
-                        <th>ยอดเบิกใช้</th>
-                        <th>คงเหลือ Kg/ตัน</th>
-                        <th>สถานะระดับสต๊อก</th>
-                    </tr>
-                </thead>
-                <tbody id="dailyTableBody">
-                    <!-- Dynamic Daily Content -->
-                </tbody>
-            </table>
-        </div>
-    </div>
 </div>
 
 <script>
-    let currentUnit = 'ton'; // 'ton' or 'kg'
+    /* Global View Switcher Logic */
+    let currentMainTab = 'cost'; // 'cost' or 'stock'
+
+    function switchMainTab(tab) {
+        currentMainTab = tab;
+        const viewCost = document.getElementById('viewCostEfficiency');
+        const viewStock = document.getElementById('viewStock');
+        const btnCost = document.getElementById('mainBtnCost');
+        const btnStock = document.getElementById('mainBtnStock');
+        const unitToggle = document.getElementById('stockUnitToggle');
+
+        if (tab === 'cost') {
+            viewCost.classList.remove('hidden');
+            viewStock.classList.add('hidden');
+
+            btnCost.className = "flex-1 sm:flex-none px-4 py-2 rounded-lg font-bold text-xs md:text-sm transition flex items-center justify-center gap-2 bg-accentOrange text-white shadow-md";
+            btnStock.className = "flex-1 sm:flex-none px-4 py-2 rounded-lg font-bold text-xs md:text-sm transition flex items-center justify-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800";
+            unitToggle.classList.add('hidden');
+
+            // Trigger Cost Charts Resize/Update
+            calculateAll();
+        } else {
+            viewCost.classList.add('hidden');
+            viewStock.classList.remove('hidden');
+
+            btnStock.className = "flex-1 sm:flex-none px-4 py-2 rounded-lg font-bold text-xs md:text-sm transition flex items-center justify-center gap-2 bg-accentOrange text-white shadow-md";
+            btnCost.className = "flex-1 sm:flex-none px-4 py-2 rounded-lg font-bold text-xs md:text-sm transition flex items-center justify-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800";
+            unitToggle.classList.remove('hidden');
+
+            // Trigger Stock Dashboard Updates
+            updateDashboard();
+        }
+    }
+
+    /* ==================================================================== */
+    /* 1. COAL COST & EFFICIENCY ENGINE LOGIC                               */
+    /* ==================================================================== */
+    const defaultGrades = [
+        { grade: 'AR3500', ncv: 3500, price: 2.10, eff: 78, ash: 10.0, color: '#3b82f6' },
+        { grade: 'AR3800', ncv: 3800, price: 2.43, eff: 80, ash: 8.0, color: '#10b981' },
+        { grade: 'AR4200', ncv: 4200, price: 3.40, eff: 82, ash: 6.0, color: '#f97316' },
+        { grade: 'AR5000', ncv: 5000, price: 4.10, eff: 84, ash: 4.0, color: '#a855f7' }
+    ];
+    const collectedAshKgPerDay = 100;
+
+    let currentGrades = JSON.parse(JSON.stringify(defaultGrades));
+    const COAL_SHEET_ID = '1RhBSjnL8-yP_L_alsXY8LVdChQqg6ZMx5_J-nD0PXpU';
+    const COAL_DATA_URL = `https://docs.google.com/spreadsheets/d/${COAL_SHEET_ID}/gviz/tq?tqx=out:json;responseHandler:handleCoalData&sheet=Coal_Data`;
+
+    // Cost Chart instances
+    let chartSteamCost = null;
+    let chartCoalUsage = null;
+    let chartMonthlyCost = null;
+    let chartEnergyCost = null;
+
+    function getSteamEnthalpy(pressureBar) {
+        return 650 + (pressureBar * 1.3);
+    }
+
+    function calculateAll() {
+        const capacity = parseFloat(document.getElementById('paramCapacity').value);
+        const pressure = parseFloat(document.getElementById('paramPressure').value);
+        const feedwaterTemp = parseFloat(document.getElementById('paramFeedwater').value);
+        const hoursPerDay = parseFloat(document.getElementById('paramHours').value);
+
+        document.getElementById('lblCapacity').innerText = `${capacity.toFixed(1)} ตัน/ชม.`;
+        document.getElementById('lblPressure').innerText = `${pressure.toFixed(1)} bar.g`;
+        document.getElementById('lblFeedwater').innerText = `${feedwaterTemp} °C`;
+        document.getElementById('lblHours').innerText = `${hoursPerDay} ชม./วัน`;
+
+        const hSteam = getSteamEnthalpy(pressure);
+        const hFeed = feedwaterTemp;
+        const deltaH = hSteam - hFeed;
+        const qOut = capacity * 1000 * deltaH; 
+
+        const results = currentGrades.map((item, idx) => {
+            const priceInput = document.getElementById(`price_${idx}`);
+            const effInput = document.getElementById(`eff_${idx}`);
+            const ashInput = document.getElementById(`ash_${idx}`);
+
+            if (priceInput) item.price = parseFloat(priceInput.value) || item.price;
+            if (effInput) item.eff = parseFloat(effInput.value) || item.eff;
+            if (ashInput) item.ash = parseFloat(ashInput.value) || item.ash;
+
+            const effectiveHeatPerKg = item.ncv * (item.eff / 100.0);
+            const kgPerHour = qOut / effectiveHeatPerKg;
+            const tonsPerDay = (kgPerHour * hoursPerDay) / 1000.0;
+            const tonsPerMonth = tonsPerDay * 30.0;
+
+            const costPerHour = kgPerHour * item.price;
+            const costPerTonSteam = costPerHour / capacity;
+            const monthlyCost = costPerHour * hoursPerDay * 30.0;
+
+            const costPerEffectiveGcal = (item.price / effectiveHeatPerKg) * 1000000;
+            const ashTonsPerDay = collectedAshKgPerDay / 1000.0;
+
+            return {
+                ...item,
+                effectiveHeatPerKg,
+                kgPerHour,
+                tonsPerDay,
+                tonsPerMonth,
+                costPerHour,
+                costPerTonSteam,
+                monthlyCost,
+                costPerEffectiveGcal,
+                ashTonsPerDay
+            };
+        });
+
+        renderMatrixTable(results);
+
+        let best = results[0];
+        results.forEach(r => {
+            if (r.costPerTonSteam < best.costPerTonSteam) best = r;
+        });
+
+        const ar3800 = results.find(r => r.grade === 'AR3800') || results[1];
+        const ar4200 = results.find(r => r.grade === 'AR4200') || results[2];
+        const diffPercent = (((ar4200.costPerTonSteam - ar3800.costPerTonSteam) / ar4200.costPerTonSteam) * 100).toFixed(1);
+
+        document.getElementById('winnerText').innerText = best.grade;
+        document.getElementById('winnerDesc').innerHTML = `
+            ถ่านหินเกรด <strong class="text-orange-400">${best.grade}</strong> ให้ต้นทุนการผลิตไอน้ำต่ำสุดอยู่ที่ 
+            <strong class="text-emerald-400 font-bold">${best.costPerTonSteam.toFixed(1)} บาท/ตันไอน้ำ</strong> 
+            ประหยัดงบได้ถึง <strong class="text-emerald-400 font-bold">${diffPercent}%</strong> เมื่อเทียบกับเกรด AR4200 
+            (คำนวณที่ขนาดเตา ${capacity} ตัน/ชม.)
+        `;
+
+        document.getElementById('kpiBestSteamCost').innerText = `${best.costPerTonSteam.toFixed(1)} ฿/ตัน`;
+        document.getElementById('kpiBestSteamSub').innerText = `เกรดที่คุ้มค่าที่สุด: ${best.grade}`;
+        document.getElementById('kpiDailyCoalUse').innerText = `${best.tonsPerDay.toFixed(2)} ตัน/วัน`;
+        document.getElementById('kpiDailyCoalSub').innerText = `${best.kgPerHour.toFixed(1)} kg/hr @ ${best.grade}`;
+        document.getElementById('kpiMonthlyCost').innerText = `${(best.monthlyCost / 1000000).toFixed(2)} ล้านบาท`;
+        document.getElementById('kpiMonthlySub').innerText = `${best.monthlyCost.toLocaleString(undefined, {maximumFractionDigits:0})} บาท/เดือน`;
+        document.getElementById('kpiDailyAsh').innerText = `${best.ashTonsPerDay.toFixed(2)} ตัน/วัน`;
+        document.getElementById('kpiDailyAshSub').innerText = `ค่าปฏิบัติการจริง ${collectedAshKgPerDay.toLocaleString()} กก./วัน`;
+
+        renderCostCharts(results);
+    }
+
+    function renderMatrixTable(results) {
+        const tbody = document.getElementById('coalTableBody');
+        tbody.innerHTML = '';
+        const minCost = Math.min(...results.map(r => r.costPerTonSteam));
+
+        results.forEach((r, idx) => {
+            const isWinner = r.costPerTonSteam === minCost;
+            const tr = document.createElement('tr');
+            tr.className = isWinner ? 'bg-emerald-500/10 font-semibold' : 'hover:bg-darkBg/50 transition';
+
+            tr.innerHTML = `
+                <td class="p-3 flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full" style="background-color: ${r.color};"></span>
+                    <span class="text-white font-bold">${r.grade}</span>
+                    ${isWinner ? '<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] px-2 py-0.5 rounded-full font-bold">คุ้มที่สุด</span>' : ''}
+                </td>
+                <td class="p-3 font-mono">${r.ncv.toLocaleString()}</td>
+                <td class="p-3">
+                    <input type="number" id="price_${idx}" value="${r.price.toFixed(2)}" step="0.05" min="0.5" max="10" 
+                        class="w-20 bg-darkBg border border-cardBorder rounded p-1 text-emerald-400 font-bold font-mono focus:border-orange-500 outline-none" 
+                        onchange="calculateAll()">
+                </td>
+                <td class="p-3">
+                    <input type="number" id="eff_${idx}" value="${r.eff}" step="1" min="50" max="95" 
+                        class="w-16 bg-darkBg border border-cardBorder rounded p-1 text-slate-200 font-mono focus:border-orange-500 outline-none" 
+                        onchange="calculateAll()"> %
+                </td>
+                <td class="p-3">
+                    <input type="number" id="ash_${idx}" value="${r.ash}" step="0.5" min="1" max="25" 
+                        class="w-16 bg-darkBg border border-cardBorder rounded p-1 text-slate-200 font-mono focus:border-orange-500 outline-none" 
+                        onchange="calculateAll()"> %
+                </td>
+                <td class="p-3 font-mono text-orange-400 font-bold">${Math.round(r.effectiveHeatPerKg).toLocaleString()} kcal</td>
+                <td class="p-3 font-mono text-slate-200">${Math.round(r.costPerEffectiveGcal).toLocaleString()} ฿</td>
+                <td class="p-3">
+                    <span class="px-2.5 py-1 rounded-full text-xs font-bold ${isWinner ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-slate-800 text-slate-400'}">
+                        ${r.costPerTonSteam.toFixed(1)} ฿/ตันไอน้ำ
+                    </span>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderCostCharts(results) {
+        const labels = results.map(r => r.grade);
+        const colors = results.map(r => r.color);
+
+        if (chartSteamCost) chartSteamCost.destroy();
+        const ctx1 = document.getElementById('chartSteamCost').getContext('2d');
+        chartSteamCost = new Chart(ctx1, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{ label: 'ต้นทุนไอน้ำ (บาท/ตัน)', data: results.map(r => r.costPerTonSteam), backgroundColor: colors, borderRadius: 8 }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { x: { grid: { display: false }, ticks: { color: '#8a99ad' } }, y: { grid: { color: '#263240' }, ticks: { color: '#8a99ad' } } }
+            }
+        });
+
+        if (chartCoalUsage) chartCoalUsage.destroy();
+        const ctx2 = document.getElementById('chartCoalUsage').getContext('2d');
+        chartCoalUsage = new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{ label: 'การใช้ถ่านหิน (ตัน/วัน)', data: results.map(r => r.tonsPerDay), backgroundColor: '#f97316', borderRadius: 8 }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: '#8a99ad' } } },
+                scales: { x: { grid: { display: false }, ticks: { color: '#8a99ad' } }, y: { grid: { color: '#263240' }, ticks: { color: '#8a99ad' } } }
+            }
+        });
+
+        if (chartMonthlyCost) chartMonthlyCost.destroy();
+        const ctx3 = document.getElementById('chartMonthlyCost').getContext('2d');
+        chartMonthlyCost = new Chart(ctx3, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{ label: 'ค่าใช้จ่ายรวม (บาท/เดือน)', data: results.map(r => r.monthlyCost), backgroundColor: '#f59e0b', borderRadius: 8 }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { x: { grid: { display: false }, ticks: { color: '#8a99ad' } }, y: { grid: { color: '#263240' }, ticks: { color: '#8a99ad' } } }
+            }
+        });
+
+        if (chartEnergyCost) chartEnergyCost.destroy();
+        const ctx4 = document.getElementById('chartEnergyCost').getContext('2d');
+        chartEnergyCost = new Chart(ctx4, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'บาท / Effective Gcal', data: results.map(r => r.costPerEffectiveGcal),
+                    borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                    fill: true, tension: 0.3, borderWidth: 3, pointRadius: 6
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: '#8a99ad' } } },
+                scales: { x: { grid: { display: false }, ticks: { color: '#8a99ad' } }, y: { grid: { color: '#263240' }, ticks: { color: '#8a99ad' } } }
+            }
+        });
+    }
+
+    function resetDefaults() {
+        currentGrades = JSON.parse(JSON.stringify(defaultGrades));
+        document.getElementById('paramCapacity').value = 4;
+        document.getElementById('paramPressure').value = 8;
+        document.getElementById('paramFeedwater').value = 85;
+        document.getElementById('paramHours').value = 24;
+        calculateAll();
+    }
+
+    function parseGvizResponse(text) {
+        const jsonStart = text.indexOf('{');
+        const jsonEnd = text.lastIndexOf('});');
+        if (jsonStart < 0 || jsonEnd < jsonStart) throw new Error('Invalid Google Sheets response');
+        return JSON.parse(text.slice(jsonStart, jsonEnd + 1));
+    }
+
+    function getSheetCell(row, index, display = false) {
+        const cell = row.c && row.c[index];
+        if (!cell) return '';
+        return display && cell.f !== undefined ? cell.f : cell.v ?? '';
+    }
+
+    function escapeHtml(value) {
+        return String(value).replace(/[&<>'"]/g, character => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+        }[character]));
+    }
+
+    function renderCoalData(rows) {
+        const tbody = document.getElementById('coalDataBody');
+        tbody.innerHTML = '';
+        rows.slice().reverse().forEach(row => {
+            const grade = getSheetCell(row, 6, true);
+            const price = parseNum(getSheetCell(row, 5));
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="p-2.5">${escapeHtml(getSheetCell(row, 0, true))}</td>
+                <td class="p-2.5">${escapeHtml(getSheetCell(row, 1, true))}</td>
+                <td class="p-2.5">${escapeHtml(getSheetCell(row, 2, true))}</td>
+                <td class="p-2.5">${parseNum(getSheetCell(row, 3)).toLocaleString()}</td>
+                <td class="p-2.5 text-emerald-400 font-bold">${price.toFixed(2)}</td>
+                <td class="p-2.5 font-bold">${escapeHtml(grade)}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function loadCoalSheetJsonp() {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            const timeout = setTimeout(() => {
+                script.remove();
+                reject(new Error('Coal_Data request timed out'));
+            }, 10000);
+            window.handleCoalData = data => {
+                clearTimeout(timeout);
+                script.remove();
+                resolve(data);
+            };
+            script.onerror = () => {
+                clearTimeout(timeout);
+                script.remove();
+                reject(new Error('Coal_Data request failed'));
+            };
+            script.src = COAL_DATA_URL;
+            document.head.appendChild(script);
+        });
+    }
+
+    async function fetchCoalData() {
+        const tbody = document.getElementById('coalDataBody');
+        try {
+            const json = await loadCoalSheetJsonp();
+            const rows = (json.table.rows || []).filter(row => getSheetCell(row, 6) !== '');
+            if (!rows.length) throw new Error('Coal_Data is empty');
+
+            renderCoalData(rows);
+
+            const latestByGrade = new Map();
+            rows.forEach(row => {
+                const grade = `AR${parseNum(getSheetCell(row, 6))}`;
+                const price = parseNum(getSheetCell(row, 5));
+                if (price > 0) latestByGrade.set(grade, { price });
+            });
+
+            const gradesFromSheet = Array.from(latestByGrade.entries()).map(([grade, data], index) => {
+                const fallback = defaultGrades.find(item => item.grade === grade) || {};
+                return {
+                    grade,
+                    ncv: parseNum(grade.replace('AR', '')) || fallback.ncv || 3800,
+                    price: data.price,
+                    eff: fallback.eff || 80,
+                    ash: fallback.ash || 8,
+                    color: fallback.color || ['#3b82f6', '#10b981', '#f97316', '#a855f7'][index % 4]
+                };
+            });
+
+            if (gradesFromSheet.length) {
+                currentGrades = gradesFromSheet;
+                currentGrades.forEach((grade, index) => {
+                    const priceInput = document.getElementById(`price_${index}`);
+                    const effInput = document.getElementById(`eff_${index}`);
+                    const ashInput = document.getElementById(`ash_${index}`);
+                    if (priceInput) priceInput.value = grade.price.toFixed(2);
+                    if (effInput) effInput.value = grade.eff;
+                    if (ashInput) ashInput.value = grade.ash;
+                });
+                calculateAll();
+            }
+        } catch (error) {
+            tbody.innerHTML = `<tr><td class="p-2.5 text-center text-red-400" colspan="6">โหลดข้อมูล Coal_Data ไม่สำเร็จ</td></tr>`;
+            console.error('Coal_Data loading failed:', error);
+        }
+    }
+
+    /* ==================================================================== */
+    /* 2. COAL STOCK MANAGEMENT ENGINE LOGIC                                */
+    /* ==================================================================== */
+    let currentUnit = 'ton';
     let rawData = {
         monthsShort: ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'],
         monthsFull: ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'],
@@ -689,24 +1092,41 @@
         maxLimitKg: 100000
     };
 
-    // Store raw daily records [12 months][31 days]
     let dailyRecords = Array(12).fill(null).map(() => []);
-
     let barChartInstance = null;
     let lineChartInstance = null;
+    let dailyTrendChartInstance = null;
 
     const SHEET_ID = '1_v4hGMALYZtLSsQ2959Kos4IBBDQoQNqfMSQz084A_k';
-    const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+    const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json;responseHandler:handleStockData`;
+
+    function loadGvizJsonp(url, handlerName) {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            const timeout = setTimeout(() => {
+                script.remove();
+                reject(new Error(`${handlerName} request timed out`));
+            }, 10000);
+            window[handlerName] = data => {
+                clearTimeout(timeout);
+                script.remove();
+                resolve(data);
+            };
+            script.onerror = () => {
+                clearTimeout(timeout);
+                script.remove();
+                reject(new Error(`${handlerName} request failed`));
+            };
+            script.src = url;
+            document.head.appendChild(script);
+        });
+    }
 
     async function fetchGoogleSheetData() {
         try {
-            const response = await fetch(GVIZ_URL);
-            const text = await response.text();
-            const jsonText = text.substring(47, text.length - 2);
-            const json = JSON.parse(jsonText);
+            const json = await loadGvizJsonp(GVIZ_URL, 'handleStockData');
             const rows = json.table.rows;
 
-            // Extract daily rows (Day 1 to Day 31)
             for (let m = 0; m < 12; m++) {
                 dailyRecords[m] = [];
                 let dayCol = m * 4;
@@ -732,43 +1152,19 @@
                     }
                 }
             }
-
-            // Extract Summary Row
-            let summaryRow = null;
-            for (let i = rows.length - 1; i >= 0; i--) {
-                if (rows[i].c && rows[i].c[0] && parseNum(rows[i].c[0].v) > 100000) {
-                    summaryRow = rows[i];
-                    break;
-                }
-            }
-
-            if (summaryRow) {
-                for (let m = 0; m < 12; m++) {
-                    let inCol = m * 4;
-                    let outCol = m * 4 + 1;
-                    if (summaryRow.c[inCol]) rawData.coalInKg[m] = parseNum(summaryRow.c[inCol].v);
-                    if (summaryRow.c[outCol]) rawData.coalOutKg[m] = parseNum(summaryRow.c[outCol].v);
-                }
-            }
-
-            for (let m = 0; m < 12; m++) {
-                let stockCol = m * 4 + 3;
-                let lastStock = 0;
-                for (let r = 2; r < rows.length; r++) {
-                    if (rows[r] && rows[r].c && rows[r].c[stockCol] && rows[r].c[stockCol].v !== null) {
-                        let val = parseNum(rows[r].c[stockCol].v);
-                        if (val > 0) lastStock = val;
-                    }
-                }
-                rawData.endingStockKg[m] = lastStock;
-            }
-
+            syncRawDataFromDailyRecords();
             updateDashboard();
         } catch (e) {
-            console.log("Loaded fallback dataset:", e);
             generateMockDailyRecords();
+            syncRawDataFromDailyRecords();
             updateDashboard();
         }
+    }
+
+    function syncRawDataFromDailyRecords() {
+        rawData.coalInKg = dailyRecords.map(records => records.reduce((sum, record) => sum + record.inKg, 0));
+        rawData.coalOutKg = dailyRecords.map(records => records.reduce((sum, record) => sum + record.outKg, 0));
+        rawData.endingStockKg = dailyRecords.map(records => records.length ? records[records.length - 1].stockKg : 0);
     }
 
     function generateMockDailyRecords() {
@@ -780,12 +1176,7 @@
                 let outVal = m < 9 ? 18000 : 0;
                 currentStock = currentStock + inVal - outVal;
                 if (currentStock < 0) currentStock = 86440.34;
-                dailyRecords[m].push({
-                    day: d,
-                    inKg: inVal,
-                    outKg: outVal,
-                    stockKg: currentStock
-                });
+                dailyRecords[m].push({ day: d, inKg: inVal, outKg: outVal, stockKg: currentStock });
             }
         }
     }
@@ -793,26 +1184,31 @@
     function parseNum(val) {
         if (!val) return 0;
         if (typeof val === 'number') return val;
-        let str = String(val).replace(/,/g, '').trim();
-        return parseFloat(str) || 0;
+        return parseFloat(String(val).replace(/,/g, '').trim()) || 0;
     }
 
     function setUnit(unit) {
         currentUnit = unit;
-        document.getElementById('btnTon').classList.toggle('active', unit === 'ton');
-        document.getElementById('btnKg').classList.toggle('active', unit === 'kg');
+        document.getElementById('btnTon').classList.toggle('bg-accentOrange', unit === 'ton');
+        document.getElementById('btnTon').classList.toggle('text-white', unit === 'ton');
+        document.getElementById('btnKg').classList.toggle('bg-accentOrange', unit === 'kg');
+        document.getElementById('btnKg').classList.toggle('text-white', unit === 'kg');
         updateDashboard();
     }
 
-    function switchTab(tabId) {
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+    function switchStockSubTab(tabId) {
+        document.getElementById('subTabOverview').classList.toggle('hidden', tabId !== 'subTabOverview');
+        document.getElementById('subTabDaily').classList.toggle('hidden', tabId !== 'subTabDaily');
 
-        document.getElementById(tabId).classList.add('active');
-        if (tabId === 'tabOverview') {
-            document.getElementById('tabNavOverview').classList.add('active');
+        const navOverview = document.getElementById('subTabNavOverview');
+        const navDaily = document.getElementById('subTabNavDaily');
+
+        if (tabId === 'subTabOverview') {
+            navOverview.className = "pb-3 text-sm font-bold border-b-2 border-accentOrange text-white transition";
+            navDaily.className = "pb-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-white transition";
         } else {
-            document.getElementById('tabNavDaily').classList.add('active');
+            navDaily.className = "pb-3 text-sm font-bold border-b-2 border-accentOrange text-white transition";
+            navOverview.className = "pb-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-white transition";
             renderDailyView();
         }
     }
@@ -825,9 +1221,9 @@
         const ytdIn = rawData.coalInKg.reduce((a, b) => a + b, 0) * factor;
         const ytdOut = rawData.coalOutKg.reduce((a, b) => a + b, 0) * factor;
         
-        let currentMonthIdx = 8;
+        let currentMonthIdx = 0;
         for (let i = 11; i >= 0; i--) {
-            if (rawData.endingStockKg[i] > 0) {
+            if (rawData.coalInKg[i] > 0 || rawData.coalOutKg[i] > 0) {
                 currentMonthIdx = i;
                 break;
             }
@@ -835,13 +1231,14 @@
 
         const currentMonthName = rawData.monthsFull[currentMonthIdx];
         const currentStockVal = rawData.endingStockKg[currentMonthIdx] * factor;
-        const avgDaily = (rawData.coalOutKg.reduce((a, b) => a + b, 0) / 229) * factor;
+        const activeDays = dailyRecords.reduce((total, records) => total + records.length, 0);
+        const avgDaily = activeDays > 0 ? (rawData.coalOutKg.reduce((a, b) => a + b, 0) / activeDays) * factor : 0;
         const daysLeft = avgDaily > 0 ? Math.floor(currentStockVal / avgDaily) : 0;
 
         document.getElementById('valLatestStock').innerText = `${currentStockVal.toLocaleString(undefined, {maximumFractionDigits: 1})} ${unitText}`;
         document.getElementById('valYtdIn').innerText = `${ytdIn.toLocaleString(undefined, {maximumFractionDigits: 1})} ${unitText}`;
         document.getElementById('valYtdOut').innerText = `${ytdOut.toLocaleString(undefined, {maximumFractionDigits: 1})} ${unitText}`;
-        document.getElementById('valNetBalance').innerText = `สุทธิ +${(ytdIn - ytdOut).toLocaleString(undefined, {maximumFractionDigits: 1})} ${unitText}`;
+        document.getElementById('valNetBalance').innerText = `สุทธิ ${ytdIn >= ytdOut ? '+' : ''}${(ytdIn - ytdOut).toLocaleString(undefined, {maximumFractionDigits: 1})} ${unitText}`;
         document.getElementById('valAvgDaily').innerText = `${avgDaily.toLocaleString(undefined, {maximumFractionDigits: 2})} ${unitText}`;
         
         document.getElementById('valDaysLeft').innerText = `${daysLeft} วัน`;
@@ -859,59 +1256,41 @@
         const statusPill = document.getElementById('lblStockStatus');
         if (currentStockVal < minVal) {
             statusPill.innerText = "วิกฤต (< MIN)";
-            statusPill.style.color = "#ef4444";
-            statusPill.style.backgroundColor = "rgba(239, 68, 68, 0.15)";
-            statusPill.style.borderColor = "rgba(239, 68, 68, 0.3)";
+            statusPill.className = "inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold mt-1 bg-red-500/15 text-red-400 border border-red-500/30";
         } else {
             statusPill.innerText = "อยู่ในกรอบควบคุม";
-            statusPill.style.color = "#fb923c";
-            statusPill.style.backgroundColor = "rgba(249, 115, 22, 0.15)";
-            statusPill.style.borderColor = "rgba(249, 115, 22, 0.3)";
+            statusPill.className = "inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold mt-1 bg-orange-500/15 text-orange-400 border border-orange-500/30";
         }
 
-        renderCharts(factor, unitText);
+        renderStockCharts(factor, unitText);
         renderChartTable(factor, unitText);
         renderDailyView();
     }
 
-    function renderCharts(factor, unitText) {
+    function renderStockCharts(factor, unitText) {
         if (barChartInstance) barChartInstance.destroy();
         if (lineChartInstance) lineChartInstance.destroy();
 
-        const inData = rawData.coalInKg.map(v => v * factor);
-        const outData = rawData.coalOutKg.map(v => v * factor);
-        const stockData = rawData.endingStockKg.map(v => v * factor);
+        const range = getTrendRange();
+        const labels = range.map(index => rawData.monthsShort[index]);
+        const inData = range.map(index => rawData.coalInKg[index] * factor);
+        const outData = range.map(index => rawData.coalOutKg[index] * factor);
+        const stockData = range.map(index => rawData.endingStockKg[index] * factor);
 
         const ctxBar = document.getElementById('barChartInVsOut').getContext('2d');
         barChartInstance = new Chart(ctxBar, {
             type: 'bar',
             data: {
-                labels: rawData.monthsShort,
+                labels,
                 datasets: [
-                    {
-                        label: `รับเข้า (${unitText})`,
-                        data: inData,
-                        backgroundColor: '#10b981',
-                        borderRadius: 4
-                    },
-                    {
-                        label: `เบิกใช้ (${unitText})`,
-                        data: outData,
-                        backgroundColor: '#ef4444',
-                        borderRadius: 4
-                    }
+                    { label: `รับเข้า (${unitText})`, data: inData, backgroundColor: '#10b981', borderRadius: 4 },
+                    { label: `เบิกใช้ (${unitText})`, data: outData, backgroundColor: '#ef4444', borderRadius: 4 }
                 ]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { labels: { color: '#8a99ad', font: { family: 'IBM Plex Sans Thai' } } }
-                },
-                scales: {
-                    x: { grid: { display: false }, ticks: { color: '#8a99ad' } },
-                    y: { grid: { color: '#263240' }, ticks: { color: '#8a99ad' } }
-                }
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: '#8a99ad' } } },
+                scales: { x: { grid: { display: false }, ticks: { color: '#8a99ad' } }, y: { grid: { color: '#263240' }, ticks: { color: '#8a99ad' } } }
             }
         });
 
@@ -919,181 +1298,235 @@
         lineChartInstance = new Chart(ctxLine, {
             type: 'line',
             data: {
-                labels: rawData.monthsShort,
+                labels,
                 datasets: [
                     {
-                        label: `คงเหลือปลายเดือน (${unitText})`,
-                        data: stockData,
-                        borderColor: '#f59e0b',
-                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                        borderWidth: 3,
-                        fill: true,
-                        tension: 0.3
+                        label: `คงเหลือปลายเดือน (${unitText})`, data: stockData,
+                        borderColor: '#f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        borderWidth: 3, fill: true, tension: 0.3
                     },
                     {
-                        label: 'Max Threshold',
-                        data: Array(12).fill(rawData.maxLimitKg * factor),
-                        borderColor: '#f97316',
-                        borderDash: [6, 6],
-                        pointRadius: 0,
-                        borderWidth: 1.5,
-                        fill: false
+                        label: `MAX (${unitText})`, data: Array(range.length).fill(rawData.maxLimitKg * factor),
+                        borderColor: '#f97316', borderWidth: 2, borderDash: [5, 5], pointRadius: 0, fill: false
                     },
                     {
-                        label: 'Min Threshold',
-                        data: Array(12).fill(rawData.minLimitKg * factor),
-                        borderColor: '#ef4444',
-                        borderDash: [6, 6],
-                        pointRadius: 0,
-                        borderWidth: 1.5,
-                        fill: false
+                        label: `MIN (${unitText})`, data: Array(range.length).fill(rawData.minLimitKg * factor),
+                        borderColor: '#ef4444', borderWidth: 2, borderDash: [5, 5], pointRadius: 0, fill: false
                     }
                 ]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { labels: { color: '#8a99ad', font: { family: 'IBM Plex Sans Thai' } } }
-                },
-                scales: {
-                    x: { grid: { display: false }, ticks: { color: '#8a99ad' } },
-                    y: { grid: { color: '#263240' }, ticks: { color: '#8a99ad' } }
-                }
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: '#8a99ad' } } },
+                scales: { x: { grid: { display: false }, ticks: { color: '#8a99ad' } }, y: { grid: { color: '#263240' }, ticks: { color: '#8a99ad' } } }
+            }
+        });
+
+        renderDailyTrendChart(range, factor, unitText);
+    }
+
+    function getTrendRange() {
+        const startSelect = document.getElementById('trendStartMonth');
+        const endSelect = document.getElementById('trendEndMonth');
+        if (!startSelect || !endSelect) return Array.from({ length: 12 }, (_, index) => index);
+
+        let start = parseInt(startSelect.value);
+        let end = parseInt(endSelect.value);
+        if (start > end) {
+            [start, end] = [end, start];
+            startSelect.value = start;
+            endSelect.value = end;
+        }
+        return Array.from({ length: end - start + 1 }, (_, offset) => start + offset);
+    }
+
+    function renderTrendCharts() {
+        const isTon = currentUnit === 'ton';
+        renderStockCharts(isTon ? 0.001 : 1, isTon ? 'ตัน' : 'กก.');
+        renderChartTable(isTon ? 0.001 : 1, isTon ? 'ตัน' : 'กก.');
+    }
+
+    function resetTrendRange() {
+        document.getElementById('trendStartMonth').value = 0;
+        document.getElementById('trendEndMonth').value = 8;
+        renderTrendCharts();
+    }
+
+    function renderDailyTrendChart(range, factor, unitText) {
+        if (dailyTrendChartInstance) dailyTrendChartInstance.destroy();
+
+        const colors = ['#3b82f6', '#10b981', '#f97316', '#a855f7', '#eab308', '#06b6d4', '#ec4899', '#84cc16', '#ef4444', '#14b8a6', '#f43f5e', '#8b5cf6'];
+        const datasets = range.map((monthIndex, colorIndex) => {
+            const recordsByDay = new Map((dailyRecords[monthIndex] || []).map(record => [record.day, record]));
+            return {
+                label: rawData.monthsShort[monthIndex],
+                data: Array.from({ length: 31 }, (_, dayIndex) => {
+                    const record = recordsByDay.get(dayIndex + 1);
+                    return record ? record.stockKg * factor : null;
+                }),
+                borderColor: colors[colorIndex % colors.length],
+                backgroundColor: colors[colorIndex % colors.length],
+                borderWidth: 2,
+                pointRadius: 2,
+                tension: 0.25,
+                spanGaps: true,
+                fill: false
+            };
+        });
+
+        const canvas = document.getElementById('dailyTrendChart');
+        if (!canvas) return;
+        dailyTrendChartInstance = new Chart(canvas.getContext('2d'), {
+            type: 'line',
+            data: { labels: Array.from({ length: 31 }, (_, index) => `วันที่ ${index + 1}`), datasets },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: { legend: { labels: { color: '#8a99ad' } } },
+                scales: { x: { grid: { display: false }, ticks: { color: '#8a99ad', maxTicksLimit: 12 } }, y: { title: { display: true, text: `คงเหลือ (${unitText})`, color: '#8a99ad' }, grid: { color: '#263240' }, ticks: { color: '#8a99ad' } } }
             }
         });
     }
 
     function renderChartTable(factor, unitText) {
         const tbody = document.getElementById('chartTableBody');
-        let html = '';
-
-        const maxValIn = Math.max(...rawData.coalInKg) * factor || 1;
-        const maxValOut = Math.max(...rawData.coalOutKg) * factor || 1;
-        const maxValStock = Math.max(...rawData.endingStockKg) * factor || 1;
+        tbody.innerHTML = '';
+        const maxStock = Math.max(...rawData.endingStockKg);
 
         for (let i = 0; i < 12; i++) {
+            const mName = rawData.monthsFull[i];
             const inVal = rawData.coalInKg[i] * factor;
             const outVal = rawData.coalOutKg[i] * factor;
             const stockVal = rawData.endingStockKg[i] * factor;
+            
+            if (stockVal === 0 && inVal === 0 && outVal === 0 && i > 8) continue; 
 
-            const pctIn = (inVal / maxValIn) * 100;
-            const pctOut = (outVal / maxValOut) * 100;
-            const pctStock = (stockVal / maxValStock) * 100;
-
-            let statusTag = '<span style="color: var(--accent-green); font-weight:600;">ปกติ</span>';
-            if (stockVal > 0 && stockVal < rawData.minLimitKg * factor) {
-                statusTag = '<span style="color: var(--accent-red); font-weight:600;">ต่ำกว่า Min (วิกฤต)</span>';
-            } else if (stockVal > rawData.maxLimitKg * factor) {
-                statusTag = '<span style="color: var(--primary-orange); font-weight:600;">เกิน Max</span>';
+            const minLimit = rawData.minLimitKg * factor;
+            let status = 'ปกติ';
+            let statusColor = 'color: #10b981; background: rgba(16, 185, 129, 0.15);';
+            
+            if (stockVal < minLimit) {
+                status = 'ต่ำกว่ากำหนด';
+                statusColor = 'color: #ef4444; background: rgba(239, 68, 68, 0.15);';
             }
 
-            html += `
-                <tr>
-                    <td style="font-weight: 600;">${rawData.monthsFull[i]}</td>
-                    <td>
-                        <div class="bar-cell">
-                            <span>${inVal.toLocaleString(undefined, {maximumFractionDigits: 1})} ${unitText}</span>
-                            <div class="inline-bar-bg">
-                                <div class="inline-bar-fill" style="width: ${pctIn}%; background-color: var(--accent-green);"></div>
-                            </div>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="bar-cell">
-                            <span>${outVal.toLocaleString(undefined, {maximumFractionDigits: 1})} ${unitText}</span>
-                            <div class="inline-bar-bg">
-                                <div class="inline-bar-fill" style="width: ${pctOut}%; background-color: var(--accent-red);"></div>
-                            </div>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="bar-cell">
-                            <span>${stockVal.toLocaleString(undefined, {maximumFractionDigits: 1})} ${unitText}</span>
-                            <div class="inline-bar-bg">
-                                <div class="inline-bar-fill" style="width: ${pctStock}%; background-color: var(--accent-amber);"></div>
-                            </div>
-                        </div>
-                    </td>
-                    <td>${statusTag}</td>
-                </tr>
+            const fillPct = maxStock > 0 ? (rawData.endingStockKg[i] / maxStock) * 100 : 0;
+            const barColor = stockVal < minLimit ? '#ef4444' : '#f97316';
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="color: #ffffff; font-weight: 500;">${mName}</td>
+                <td>${inVal.toLocaleString(undefined, {maximumFractionDigits: 1})} ${unitText}</td>
+                <td>${outVal.toLocaleString(undefined, {maximumFractionDigits: 1})} ${unitText}</td>
+                <td class="bar-cell">
+                    <span style="width: 70px; display:inline-block; font-weight: 600;">${stockVal.toLocaleString(undefined, {maximumFractionDigits: 1})}</span>
+                    <div class="inline-bar-bg">
+                        <div class="inline-bar-fill" style="width: ${fillPct}%; background-color: ${barColor};"></div>
+                    </div>
+                </td>
+                <td>
+                    <span style="padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; border: 1px solid ${barColor}55; ${statusColor}">
+                        ${status}
+                    </span>
+                </td>
             `;
+            tbody.appendChild(tr);
         }
-        tbody.innerHTML = html;
     }
 
-    // Render Daily Breakdown Tab
     function renderDailyView() {
-        const monthIdx = parseInt(document.getElementById('selectMonth').value);
+        const monthSelect = document.getElementById('selectMonth');
+        if (!monthSelect) return;
+        const mIdx = parseInt(monthSelect.value);
+        const mName = rawData.monthsFull[mIdx];
+        
+        document.getElementById('dailyTableTitle').innerText = `📅 ตารางบันทึกการลงถ่านหินและเบิกใช้รายวัน - ${mName}`;
+
         const isTon = currentUnit === 'ton';
         const factor = isTon ? 0.001 : 1;
         const unitText = isTon ? 'ตัน' : 'กก.';
-
-        const days = dailyRecords[monthIdx] || [];
-        const monthName = rawData.monthsFull[monthIdx];
-        document.getElementById('dailyTableTitle').innerText = `📅 ตารางบันทึกการลงถ่านหินและเบิกใช้รายวัน - เดือน${monthName}`;
+        const records = dailyRecords[mIdx] || [];
 
         let sumIn = 0;
         let sumOut = 0;
         let minStock = Infinity;
         let activeDays = 0;
 
-        let tbodyHtml = '';
+        const tbody = document.getElementById('dailyTableBody');
+        tbody.innerHTML = '';
 
-        days.forEach(row => {
-            const inVal = row.inKg * factor;
-            const outVal = row.outKg * factor;
-            const stockVal = row.stockKg * factor;
-
-            sumIn += inVal;
-            sumOut += outVal;
-            if (stockVal > 0 && stockVal < minStock) minStock = stockVal;
-            if (outVal > 0) activeDays++;
-
-            let statusTag = '<span style="color: var(--accent-green); font-weight:600;">ปกติ</span>';
-            if (stockVal > 0 && stockVal < rawData.minLimitKg * factor) {
-                statusTag = '<span style="color: var(--accent-red); font-weight:600;">ต่ำกว่า Min (60t)</span>';
-            }
-
-            tbodyHtml += `
-                <tr>
-                    <td style="font-weight: 600;">วันที่ ${row.day} ${rawData.monthsShort[monthIdx]}</td>
-                    <td style="color: ${inVal > 0 ? 'var(--accent-green)' : 'var(--text-muted)'}; font-weight: ${inVal > 0 ? '600' : 'normal'};">
-                        ${inVal > 0 ? inVal.toLocaleString(undefined, {maximumFractionDigits: 1}) + ' ' + unitText : '-'}
-                    </td>
-                    <td style="color: ${outVal > 0 ? '#fca5a5' : 'var(--text-muted)'};">
-                        ${outVal > 0 ? outVal.toLocaleString(undefined, {maximumFractionDigits: 1}) + ' ' + unitText : '-'}
-                    </td>
-                    <td style="font-weight: 600;">
-                        ${stockVal.toLocaleString(undefined, {maximumFractionDigits: 1})} ${unitText}
-                    </td>
-                    <td>${statusTag}</td>
-                </tr>
-            `;
-        });
-
-        if (days.length === 0) {
-            tbodyHtml = `<tr><td colspan="5" style="text-align:center; color: var(--text-muted);">ไม่มีข้อมูลรายวันของเดือนนี้</td></tr>`;
-            minStock = 0;
+        if (records.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center p-8 text-slate-500">ไม่มีข้อมูลรายวันสำหรับเดือนนี้</td></tr>`;
+            document.getElementById('dailySumIn').innerText = `-`;
+            document.getElementById('dailySumOut').innerText = `-`;
+            document.getElementById('dailyMinStock').innerText = `-`;
+            document.getElementById('dailyActiveDays').innerText = `-`;
+            return;
         }
 
-        document.getElementById('dailyTableBody').innerHTML = tbodyHtml;
+        records.forEach(r => {
+            const rIn = r.inKg * factor;
+            const rOut = r.outKg * factor;
+            const rStock = r.stockKg * factor;
+
+            sumIn += rIn;
+            sumOut += rOut;
+            if (rStock > 0 && rStock < minStock) minStock = rStock;
+            if (rIn > 0 || rOut > 0) activeDays++;
+
+            const minLimit = rawData.minLimitKg * factor;
+            let status = 'ปกติ';
+            let statusColor = 'color: #10b981;';
+            let bgIndicator = '';
+            
+            if (rStock < minLimit) {
+                status = 'วิกฤต';
+                statusColor = 'color: #ef4444;';
+                bgIndicator = 'background-color: rgba(239, 68, 68, 0.05);';
+            }
+
+            const inDisplay = rIn > 0 ? `+${rIn.toLocaleString(undefined, {maximumFractionDigits: 1})}` : '-';
+            const outDisplay = rOut > 0 ? `-${rOut.toLocaleString(undefined, {maximumFractionDigits: 1})}` : '-';
+
+            const tr = document.createElement('tr');
+            tr.style.cssText = bgIndicator;
+            tr.innerHTML = `
+                <td style="color: #ffffff;">${r.day} ${rawData.monthsShort[mIdx]}</td>
+                <td style="color: #10b981; font-weight: 500;">${inDisplay}</td>
+                <td style="color: #ef4444; font-weight: 500;">${outDisplay}</td>
+                <td style="font-weight: 600;">${rStock.toLocaleString(undefined, {maximumFractionDigits: 1})} ${unitText}</td>
+                <td style="${statusColor} font-weight: 600;">${status}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        if (minStock === Infinity) minStock = 0;
+
         document.getElementById('dailySumIn').innerText = `${sumIn.toLocaleString(undefined, {maximumFractionDigits: 1})} ${unitText}`;
         document.getElementById('dailySumOut').innerText = `${sumOut.toLocaleString(undefined, {maximumFractionDigits: 1})} ${unitText}`;
-        document.getElementById('dailyMinStock').innerText = minStock === Infinity ? '-' : `${minStock.toLocaleString(undefined, {maximumFractionDigits: 1})} ${unitText}`;
+        document.getElementById('dailyMinStock').innerText = `${minStock.toLocaleString(undefined, {maximumFractionDigits: 1})} ${unitText}`;
         document.getElementById('dailyActiveDays').innerText = `${activeDays} วัน`;
     }
 
+    /* SCREENSHOT EXPORT FUNCTION */
     function takeScreenshot() {
-        html2canvas(document.body).then(canvas => {
+        const container = document.getElementById('dashboardCaptureArea');
+        html2canvas(container, {
+            backgroundColor: '#0f141c',
+            scale: 2
+        }).then(canvas => {
             const link = document.createElement('a');
-            link.download = 'Coal_Stock_Dashboard.png';
-            link.href = canvas.toDataURL();
+            const viewName = currentMainTab === 'cost' ? 'Cost_Efficiency' : 'Stock_Management';
+            link.download = `Coal_Integrated_Dashboard_${viewName}_${new Date().toISOString().slice(0,10)}.png`;
+            link.href = canvas.toDataURL('image/png');
             link.click();
         });
     }
 
-    window.onload = function() {
+    /* Initialize Application on Window Load */
+    window.onload = () => {
+        calculateAll();
+        fetchCoalData();
         fetchGoogleSheetData();
     };
 </script>
