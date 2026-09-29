@@ -449,24 +449,31 @@
         <!-- Raw Data Sheet Snapshot Reference -->
         <div class="bg-cardBg border border-cardBorder p-5 rounded-2xl space-y-3">
             <div class="flex justify-between items-center">
-                <h3 class="font-bold text-white text-sm md:text-base flex items-center gap-2">
-                    📋 ข้อมูลอ้างอิงจากไฟล์ชีต `Coal_Data` (ตัวอย่างรายการสั่งซื้อล่าสุด ปี 2026)
-                </h3>
+                <div>
+                    <h3 class="font-bold text-white text-sm md:text-base flex items-center gap-2">
+                        📋 รายการสั่งซื้อถ่านหิน (Coal_Data)
+                    </h3>
+                    <p id="coalDataSummary" class="text-xs text-slate-400 mt-1">กำลังโหลดข้อมูล...</p>
+                </div>
+                <label class="text-xs text-slate-400">เดือน
+                    <select id="coalDataMonth" class="block mt-1 bg-darkBg border border-cardBorder text-white font-bold px-3 py-2 rounded-xl outline-none focus:border-orange-500" onchange="renderCoalData(coalOrderRows)">
+                        <option value="all">ทุกเดือน</option>
+                    </select>
+                </label>
             </div>
             <div class="overflow-x-auto">
-                <table class="w-full text-left text-xs border-collapse font-mono min-w-[600px]">
+                <table class="w-full text-left text-xs border-collapse font-mono min-w-[480px]">
                     <thead>
                         <tr class="bg-darkBg text-slate-400 uppercase tracking-wider border-b border-cardBorder">
-                            <th class="p-2.5">Timestamp</th>
-                            <th class="p-2.5">วันที่ (Date)</th>
-                            <th class="p-2.5">ผู้จัดจำหน่าย (SUP)</th>
-                            <th class="p-2.5">น้ำหนัก (KG)</th>
-                            <th class="p-2.5">ราคา (บาท/KG)</th>
-                            <th class="p-2.5">เกรด (Grade)</th>
+                            <th class="p-2.5">วันที่</th>
+                            <th class="p-2.5">ผู้ขาย</th>
+                            <th class="p-2.5">น้ำหนัก (ตัน)</th>
+                            <th class="p-2.5">บาท/กก.</th>
+                            <th class="p-2.5">เกรด</th>
                         </tr>
                     </thead>
                     <tbody id="coalDataBody" class="divide-y divide-cardBorder text-slate-300">
-                        <tr><td class="p-2.5 text-center text-slate-500" colspan="6">กำลังโหลดข้อมูลจาก Coal_Data...</td></tr>
+                        <tr><td class="p-2.5 text-center text-slate-500" colspan="5">กำลังโหลดข้อมูลจาก Coal_Data...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -991,18 +998,63 @@
         }[character]));
     }
 
+    let coalOrderRows = [];
+
+    function getCoalOrderMonth(row) {
+        const dateValue = String(getSheetCell(row, 1));
+        const gvizDate = dateValue.match(/^Date\((\d{4}),(\d{1,2}),\d{1,2}/);
+        const isoDate = dateValue.match(/^(\d{4})-(\d{1,2})/);
+        const match = gvizDate || isoDate;
+        if (match) return `${match[1]}-${String(Number(match[2]) + (gvizDate ? 1 : 0)).padStart(2, '0')}`;
+
+        const parsedDate = new Date(dateValue);
+        if (Number.isNaN(parsedDate.getTime())) return 'unknown';
+        return `${parsedDate.getFullYear()}-${String(parsedDate.getMonth() + 1).padStart(2, '0')}`;
+    }
+
     function renderCoalData(rows) {
         const tbody = document.getElementById('coalDataBody');
+        const monthSelect = document.getElementById('coalDataMonth');
+        const summary = document.getElementById('coalDataSummary');
+        const monthNames = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+        const previousMonth = monthSelect.value;
+        const availableMonths = new Map();
+
+        rows.forEach(row => {
+            const month = getCoalOrderMonth(row);
+            if (!availableMonths.has(month)) {
+                const [year, monthNumber] = month.split('-').map(Number);
+                availableMonths.set(month, month === 'unknown' ? 'ไม่ระบุเดือน' : `${monthNames[monthNumber - 1]} ${year}`);
+            }
+        });
+
+        const monthKeys = Array.from(availableMonths.keys()).sort((a, b) => {
+            if (a === 'unknown') return 1;
+            if (b === 'unknown') return -1;
+            return b.localeCompare(a);
+        });
+        monthSelect.innerHTML = '<option value="all">ทุกเดือน</option>' + monthKeys.map(month =>
+            `<option value="${month}">${escapeHtml(availableMonths.get(month))}</option>`
+        ).join('');
+        monthSelect.value = monthKeys.includes(previousMonth) ? previousMonth : (monthKeys[0] || 'all');
+
+        const selectedMonth = monthSelect.value;
+        const visibleRows = rows.filter(row => selectedMonth === 'all' || getCoalOrderMonth(row) === selectedMonth).slice().reverse();
+        const totalTons = visibleRows.reduce((total, row) => total + parseNum(getSheetCell(row, 3)), 0) / 1000;
+        summary.textContent = `${visibleRows.length.toLocaleString()} รายการ · รวม ${totalTons.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ตัน`;
         tbody.innerHTML = '';
-        rows.slice().reverse().forEach(row => {
+        if (!visibleRows.length) {
+            tbody.innerHTML = '<tr><td class="p-2.5 text-center text-slate-500" colspan="5">ไม่มีรายการในเดือนนี้</td></tr>';
+            return;
+        }
+        visibleRows.forEach(row => {
             const grade = getSheetCell(row, 6, true);
             const price = parseNum(getSheetCell(row, 5));
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td class="p-2.5">${escapeHtml(getSheetCell(row, 0, true))}</td>
                 <td class="p-2.5">${escapeHtml(getSheetCell(row, 1, true))}</td>
                 <td class="p-2.5">${escapeHtml(getSheetCell(row, 2, true))}</td>
-                <td class="p-2.5">${parseNum(getSheetCell(row, 3)).toLocaleString()}</td>
+                <td class="p-2.5">${(parseNum(getSheetCell(row, 3)) / 1000).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 <td class="p-2.5 text-emerald-400 font-bold">${price.toFixed(2)}</td>
                 <td class="p-2.5 font-bold">${escapeHtml(grade)}</td>
             `;
@@ -1039,6 +1091,7 @@
             const rows = (json.table.rows || []).filter(row => getSheetCell(row, 6) !== '');
             if (!rows.length) throw new Error('Coal_Data is empty');
 
+            coalOrderRows = rows;
             renderCoalData(rows);
 
             const latestByGrade = new Map();
@@ -1073,7 +1126,7 @@
                 calculateAll();
             }
         } catch (error) {
-            tbody.innerHTML = `<tr><td class="p-2.5 text-center text-red-400" colspan="6">โหลดข้อมูล Coal_Data ไม่สำเร็จ</td></tr>`;
+            tbody.innerHTML = `<tr><td class="p-2.5 text-center text-red-400" colspan="5">โหลดข้อมูล Coal_Data ไม่สำเร็จ</td></tr>`;
             console.error('Coal_Data loading failed:', error);
         }
     }
